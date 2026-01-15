@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>専門家コスト計算機 | WOS Tools</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* --- 共通デザイン定義（トップページ準拠） --- */
+  :root {
+    --bg-deep: #020617;
+    --glass-surface: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --accent-ice: #22d3ee;
+    --accent-fire: #f97316;
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* 背景設定 */
+  .bg-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2;
+    background-image: url('image.png'); /* トップページと同じ画像 */
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.6) contrast(1.1) blur(2px);
+  }
+  .bg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 90%);
+    pointer-events: none;
+  }
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj48Y2lyY2xlIGN4PSI1IiBjeT0iNSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+PC9zdmc+');
+    animation: snow 25s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 50px 500px; } }
+
+  /* コンテナ */
+  .container {
+    position: relative; z-index: 1; width: 100%; max-width: 800px;
+    padding: 40px 20px; box-sizing: border-box;
+  }
+
+  /* ナビゲーション */
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-sub); text-decoration: none;
+    margin-bottom: 30px; transition: 0.3s; font-size: 0.9rem;
+  }
+  .nav-back:hover { color: var(--accent-ice); transform: translateX(-5px); }
+
+  /* カードデザイン */
+  .calc-card {
+    background: var(--glass-surface);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  h2 {
+    text-align: center; font-size: 1.8rem; margin: 0 0 30px 0;
+    color: var(--text-main); letter-spacing: 0.1em;
+    text-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 20px;
+  }
+
+  label {
+    display: block; margin-top: 20px; margin-bottom: 8px;
+    font-weight: 700; font-size: 0.9rem; color: var(--accent-ice);
+    letter-spacing: 0.05em;
+  }
+
+  /* 入力フォーム */
+  select, input {
+    width: 100%; padding: 14px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-main); font-size: 16px;
+    box-sizing: border-box; transition: 0.3s;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent-ice); outline: none;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* タブデザイン */
+  .tab-container {
+    display: flex; gap: 10px; margin: 30px 0 20px 0;
+    background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px;
+    border: 1px solid var(--glass-border);
+  }
+  .tab-btn {
+    flex: 1; padding: 12px;
+    background: transparent; border: 1px solid transparent; border-radius: 6px;
+    color: var(--text-sub); font-weight: bold; cursor: pointer;
+    transition: 0.3s; letter-spacing: 0.1em;
+  }
+  .tab-btn:hover { color: var(--accent-ice); }
+  .tab-btn.active {
+    background: rgba(34, 211, 238, 0.15);
+    border-color: var(--accent-ice);
+    color: var(--accent-ice);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.1);
+  }
+
+  /* スキル入力ブロック */
+  .skill-block {
+    background: rgba(255,255,255,0.02);
+    padding: 20px; border-radius: 8px; margin-top: 15px;
+    border: 1px solid var(--glass-border);
+  }
+  .skill-header {
+    font-size: 1rem; color: var(--text-main); margin-bottom: 12px;
+    font-weight: bold; display: flex; align-items: center; gap: 10px;
+  }
+  .skill-header input[type="checkbox"] {
+    width: 18px; height: 18px; margin: 0; accent-color: var(--accent-ice);
+  }
+  .skill-inputs { display: flex; gap: 15px; }
+  .skill-inputs div { flex: 1; }
+  .skill-inputs label {
+    margin-top: 0; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 5px;
+  }
+
+  /* 計算ボタン */
+  button.calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent-ice), #0ea5e9);
+    color: #fff; padding: 18px; border: none; border-radius: 50px;
+    font-size: 1.1rem; font-weight: bold; margin-top: 40px;
+    cursor: pointer; transition: 0.3s; letter-spacing: 0.1em;
+    box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+  }
+  button.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+  }
+  button.calc-btn:active { transform: scale(0.98); }
+
+  /* 結果表示エリア */
+  .result-container {
+    margin-top: 40px; background-color: rgba(0,0,0,0.3);
+    border-radius: 12px; padding: 25px;
+    border: 1px solid var(--accent-ice);
+    box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
+    animation: fadeIn 0.5s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px; padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .result-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .result-label { font-size: 0.95rem; color: var(--text-sub); }
+  .result-value {
+    font-size: 1.5rem; font-weight: 800; color: var(--accent-ice);
+    font-family: "Helvetica Neue", sans-serif;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  }
+
+  .hidden { display: none; }
+
+  footer {
+    margin-top: auto; padding: 40px; width: 100%; text-align: center;
+    color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+<div class="snow-container"></div>
+
+<div class="container">
+  <a href="index.html" class="nav-back"><i class="fas fa-chevron-left"></i> トップページに戻る</a>
+
+  <div class="calc-card">
+    <h1>専門家コスト計算機</h1>
+
+    <label>専門家を選択</label>
+    <select id="charSelect" onchange="updateSkillLimits()">
+      <option value="cyril">シリル (Cyrille)</option>
+      <option value="agnes">アグネス (Agnes)</option>
+      <option value="holger">ホルガー (Holger)</option>
+      <option value="romulus">ロムルス (Romulus)</option>
+      <option value="bard">バルド (Baldur)</option>
+      <option value="fabian">ファビアン (Fabian)</option>
+      <option value="valeria">ヴァレリア (Valeria)</option>
+    </select>
+
+    <div class="tab-container">
+      <button class="tab-btn active" onclick="switchTab('favor')"><i class="fas fa-heart"></i> 好感度</button>
+      <button class="tab-btn" onclick="switchTab('skill')"><i class="fas fa-book"></i> スキル</button>
+    </div>
+
+    <div id="tab-favor" class="tab-content">
+      <div style="display: flex; gap: 20px;">
+        <div style="flex:1;">
+          <label>現在の好感度レベル</label>
+          <input type="number" id="currentLv" value="1" min="1" max="99" placeholder="1〜99">
+        </div>
+        <div style="flex:1;">
+          <label>目標の好感度レベル</label>
+          <input type="number" id="targetLv" value="100" min="2" max="100" placeholder="2〜100">
+        </div>
+      </div>
+
+      <button class="calc-btn" onclick="calculateFavor()">好感度コストを計算</button>
+
+      <div class="result-container" id="resFavorArea" style="display:none;">
+        <div class="result-row">
+          <span class="result-label">必要 好感度</span>
+          <span class="result-value" id="resFavorVal">0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">必要 印 (関係進展素材)</span>
+          <span class="result-value" id="resMarkVal">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-skill" class="tab-content hidden">
+
+      <div class="skill-block">
+        <div class="skill-header">
+          <label style="margin:0; color:var(--text-main); cursor:pointer;">
+            <input type="checkbox" id="s1_active" checked> スキル 1
+          </label>
+        </div>
+        <div class="skill-inputs">
+          <div><label>現在Lv</label><input type="number" id="s1_cur" value="1" min="1" max="5"></div>
+          <div><label>目標Lv</label><input type="number" id="s1_tar" value="5" min="2" max="5"></div>
+        </div>
+      </div>
+
+      <div class="skill-block">
+        <div class="skill-header">
+          <label style="margin:0; color:var(--text-main); cursor:pointer;">
+            <input type="checkbox" id="s2_active" checked> スキル 2
+          </label>
+        </div>
+        <div class="skill-inputs">
+          <div><label>現在Lv</label><input type="number" id="s2_cur" value="1" min="1" max="5"></div>
+          <div><label>目標Lv</label><input type="number" id="s2_tar" value="5" min="2" max="5"></div>
+        </div>
+      </div>
+
+      <div class="skill-block">
+        <div class="skill-header">
+          <label style="margin:0; color:var(--text-main); cursor:pointer;">
+            <input type="checkbox" id="s3_active" checked> スキル 3
+          </label>
+        </div>
+        <div class="skill-inputs">
+          <div><label>現在Lv</label><input type="number" id="s3_cur" value="1" min="1" max="5"></div>
+          <div><label>目標Lv</label><input type="number" id="s3_tar" value="5" min="2" max="5"></div>
+        </div>
+      </div>
+
+      <div class="skill-block">
+        <div class="skill-header">
+          <label style="margin:0; color:var(--text-main); cursor:pointer;">
+            <input type="checkbox" id="s4_active" checked> スキル 4
+          </label>
+        </div>
+        <div class="skill-inputs">
+          <div><label>現在Lv</label><input type="number" id="s4_cur" value="1" min="1" max="5"></div>
+          <div><label>目標Lv</label><input type="number" id="s4_tar" value="5" min="2" max="5"></div>
+        </div>
+      </div>
+
+      <button class="calc-btn" onclick="calculateSkill()">スキルコストを計算</button>
+
+      <div class="result-container" id="resSkillArea" style="display:none;">
+        <div class="result-row">
+          <span class="result-label">学識の書 (Book)</span>
+          <span class="result-value" id="resBook">0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">学習経験値 (XP)</span>
+          <span class="result-value" id="resXP">0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">加速時間 (Min)</span>
+          <div>
+            <div class="result-value" id="resTime" style="text-align:right;">0</div>
+            <div id="resTimeFormatted" style="font-size:0.8rem; color:var(--text-sub); text-align:right; margin-top:5px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  &copy; 2026 WOS Tools Created by MAYUKA
+</footer>
+
+<script>
+// ==========================================
+// データ定義 (Data Definition)
+// ==========================================
+
+// ■ 好感度データ (Favor Data) - 既存のもの
+const dataCyril = [0,200,210,220,230,240,260,280,300,320,340,360,380,400,420,440,460,480,500,520,540,560,580,600,620,640,660,680,700,730,760,790,820,850,880,910,940,970,1000,1040,1080,1120,1160,1200,1240,1280,1320,1360,1400,1450,1500,1550,1600,1650,1700,1750,1800,1850,1900,1950,2000,2050,2100,2150,2200,2250,2300,2350,2400,2450,2500,2550,2600,2650,2700,2750,2800,2850,2900,2950,3000,3050,3100,3150,3200,3250,3300,3350,3400,3450,3500,3550,3600,3650,3700,3750,3800,3850,3900,3950];
+const dataAgnes = [0,240,260,270,280,290,320,340,360,390,410,440,460,480,510,530,560,580,600,630,650,680,700,720,750,770,800,820,840,880,920,950,990,1020,1060,1100,1130,1170,1200,1250,1300,1350,1400,1440,1490,1540,1590,1640,1680,1740,1800,1860,1920,1980,2040,2100,2160,2220,2280,2340,2400,2460,2520,2580,2640,2700,2760,2820,2880,2940,3000,3060,3120,3180,3240,3300,3360,3420,3480,3540,3600,3660,3720,3780,3840,3900,3960,4020,4080,4140,4200,4260,4320,4380,4440,4500,4560,4620,4680,4740];
+const dataHolger = [0,600,630,660,690,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380,1440,1500,1560,1620,1680,1740,1800,1860,1920,1980,2040,2100,2190,2280,2370,2460,2550,2640,2730,2820,2910,3000,3120,3240,3360,3480,3600,3720,3840,3960,4080,4200,4350,4500,4650,4800,4950,5100,5250,5400,5550,5700,5850,6000,6150,6300,6450,6600,6750,6900,7050,7200,7350,7500,7650,7800,7950,8100,8250,8400,8550,8700,8850,9000,9150,9300,9450,9600,9750,9900,10050,10200,10350,10500,10650,10800,10950,11100,11250,11400,11550,11700,11850];
+const dataRomulus = [0,1100,1160,1210,1270,1320,1430,1540,1650,1760,1870,1980,2090,2200,2310,2420,2530,2640,2750,2860,2970,3080,3190,3300,3410,3520,3630,3740,3850,4020,4180,4350,4510,4680,4840,5010,5170,5340,5500,5720,5940,6160,6380,6600,6820,7040,7260,7480,7700,7980,8250,8530,8800,9080,9350,9630,9900,10180,10450,10730,11000,11280,11550,11830,12100,12380,12650,12930,13200,13480,13750,14030,14300,14580,14850,15130,15400,15680,15950,16230,16500,16780,17050,17330,17600,17880,18150,18430,18700,18980,19250,19530,19800,20080,20350,20630,20900,21180,21450,21730];
+const dataBard = [0,400,420,440,460,480,520,560,600,640,680,720,760,800,840,880,920,960,1000,1040,1080,1120,1160,1200,1240,1280,1320,1360,1400,1460,1520,1580,1640,1700,1760,1820,1880,1940,2000,2080,2160,2240,2320,2400,2480,2560,2640,2720,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,3900,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,7500,7600,7700,7800,7900];
+const dataFabian = [0,1000,1050,1100,1150,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3650,3800,3950,4100,4250,4400,4550,4700,4850,5000,5200,5400,5600,5800,6000,6200,6400,6600,6800,7000,7250,7500,7750,8000,8250,8500,8750,9000,9250,9500,9750,10000,10250,10500,10750,11000,11250,11500,11750,12000,12250,12500,12750,13000,13250,13500,13750,14000,14250,14500,14750,15000,15250,15500,15750,16000,16250,16500,16750,17000,17250,17500,17750,18000,18250,18500,18750,19000,19250,19500,19750];
+const dataValeria = [0,1840,1940,2030,2120,2210,2400,2580,2760,2950,3130,3320,3500,3680,3870,4050,4240,4420,4600,4790,4970,5160,5340,5520,5710,5890,6080,6260,6440,6720,7000,7270,7550,7820,8100,8380,8650,8930,9200,9570,9940,10310,10680,11040,11410,11780,12150,12520,12880,13340,13800,14260,14720,15180,15640,16100,16560,17020,17480,17940,18400,18860,19320,19780,20240,20700,21160,21620,22080,22540,23000,23460,23920,24380,24840,25300,25760,26220,26680,27140,27600,28060,28520,28980,29440,29990,30360,30820,31280,31740,32200,32660,33120,33580,34040,34500,34960,35420,35880,36340];
+
+const favorDataMap = {
+  "cyril": dataCyril, "agnes": dataAgnes, "holger": dataHolger,
+  "romulus": dataRomulus, "bard": dataBard, "fabian": dataFabian, "valeria": dataValeria
+};
+
+  // ==========================================
+  // ■ スキルコストデータ (Skill Cost Data)
+  // ==========================================
+  // キャラクターごとの定義
+  const defaultSkillData = [
+    null,
+    { book: 5,  xp: 1000, time: 17  },
+    { book: 10, xp: 2000, time: 34  },
+    { book: 20, xp: 4000, time: 67  },
+    { book: 40, xp: 8000, time: 134 },
+  ];
+
+  // ------------------------------------------
+  // シリル専用データ
+  // ------------------------------------------
+
+  // スキル1 (狩人の心得: 最大Lv10)
+  const cyrilS1 = [
+    null,
+    { book: 70,  xp: 3600,  time: 60 },  // 1->2
+    { book: 140, xp: 7200,  time: 120 }, // 2->3
+    { book: 210, xp: 10800, time: 180 }, // 3->4
+    { book: 280, xp: 14400, time: 240 }, // 4->5
+    { book: 350, xp: 18000, time: 300 }, // 5->6
+    { book: 420, xp: 21600, time: 360 }, // 6->7
+    { book: 490, xp: 25200, time: 420 }, // 7->8
+    { book: 560, xp: 28800, time: 480 }, // 8->9
+    { book: 630, xp: 32400, time: 540 }, // 9->10
+  ];
+
+  // スキル2 (経験値パーツ: 最大Lv5)
+  const cyrilS2 = [
+    null,
+    { book: 400,  xp: 27600,  time: 460 },  // 1->2
+    { book: 800,  xp: 55200,  time: 920 },  // 2->3
+    { book: 1600, xp: 110400, time: 1840 }, // 3->4
+    { book: 3200, xp: 220800, time: 3680 }, // 4->5
+  ];
+
+  // スキル3 (精錬エナジー: 最大Lv5)
+  const cyrilS3 = [
+    null,
+    { book: 500,  xp: 43200,  time: 720 },  // 1->2
+    { book: 1000, xp: 86400,  time: 1440 }, // 2->3
+    { book: 2000, xp: 172800, time: 2880 }, // 3->4
+    { book: 4000, xp: 345600, time: 5760 }, // 4->5
+  ];
+
+  // スキル4 (出征部隊容量: 最大Lv10)
+  const cyrilS4 = [
+    null,
+    { book: 100, xp: 10200, time: 170 },  // 1->2
+    { book: 200, xp: 20400, time: 340 },  // 2->3
+    { book: 300, xp: 30600, time: 510 },  // 3->4
+    { book: 400, xp: 41400, time: 690 },  // 4->5
+    { book: 500, xp: 51600, time: 860 },  // 5->6
+    { book: 600, xp: 61800, time: 1030 }, // 6->7
+    { book: 700, xp: 72600, time: 1210 }, // 7->8
+    { book: 800, xp: 82800, time: 1380 }, // 8->9
+    { book: 900, xp: 93000, time: 1550 }, // 9->10
+  ];
+
+  // ------------------------------------------
+  // アグネス専用データ (画像解析値)
+  // ------------------------------------------
+
+  // スキル1 (高効率偵察: 最大Lv5)
+  // XP: 43200 -> 86400 -> 172800 -> 345600
+  const agnesS1 = [
+    null,
+    { book: 500,  xp: 43200,  time: 720 },  // 1->2
+    { book: 1000, xp: 86400,  time: 1440 }, // 2->3
+    { book: 2000, xp: 172800, time: 2880 }, // 3->4
+    { book: 4000, xp: 345600, time: 5760 }, // 4->5
+  ];
+
+  // スキル2 (生産革命: 最大Lv5)
+  // XP: 34200 -> 69000 -> 138000 -> 276000
+  const agnesS2 = [
+    null,
+    { book: 400,  xp: 34200,  time: 570 },  // 1->2
+    { book: 800,  xp: 69000,  time: 1150 }, // 2->3
+    { book: 1600, xp: 138000, time: 2300 }, // 3->4
+    { book: 3200, xp: 276000, time: 4600 }, // 4->5
+  ];
+
+  // スキル3 (工程管理: 最大Lv5)
+  // XP: 13800 -> 27600 -> 55200 -> 110400
+  const agnesS3 = [
+    null,
+    { book: 200,  xp: 13800,  time: 230 },  // 1->2
+    { book: 400,  xp: 27600,  time: 460 },  // 2->3
+    { book: 800,  xp: 55200,  time: 920 },  // 3->4
+    { book: 1600, xp: 110400, time: 1840 }, // 4->5
+  ];
+
+  // スキル4 (神秘の知識: 最大Lv10)
+  // XP: 10200 -> ... -> 93000 (Lv10)
+  const agnesS4 = [
+    null,
+    { book: 100, xp: 10200, time: 170 },  // 1->2
+    { book: 200, xp: 20400, time: 340 },  // 2->3
+    { book: 300, xp: 30600, time: 510 },  // 3->4
+    { book: 400, xp: 41400, time: 690 },  // 4->5
+    { book: 500, xp: 51600, time: 860 },  // 5->6
+    { book: 600, xp: 61800, time: 1030 }, // 6->7
+    { book: 700, xp: 72600, time: 1210 }, // 7->8
+    { book: 800, xp: 82800, time: 1380 }, // 8->9
+    { book: 900, xp: 93000, time: 1550 }, // 9->10
+  ];
+  // ------------------------------------------
+  // ホルガー専用データ (画像解析値)
+  // ------------------------------------------
+
+  // スキル1 & 4 (高コスト: 最大Lv10)
+  // XP: 82800 -> 165600 -> ... -> 746400
+  const holgerHigh = [
+    null,
+    { book: 600,  xp: 82800,  time: 1380 }, // 1->2
+    { book: 1200, xp: 165600, time: 2760 }, // 2->3
+    { book: 1800, xp: 248400, time: 4140 }, // 3->4
+    { book: 2400, xp: 331800, time: 5530 }, // 4->5
+    { book: 3000, xp: 414600, time: 6910 }, // 5->6
+    { book: 3600, xp: 497400, time: 8290 }, // 6->7
+    { book: 4200, xp: 580200, time: 9670 }, // 7->8
+    { book: 4800, xp: 663600, time: 11060 }, // 8->9
+    { book: 5400, xp: 746400, time: 12440 }, // 9->10
+  ];
+
+  // スキル2 & 3 (低コスト: 最大Lv10)
+  // XP: 30600 -> 61800 -> ... -> 279600
+  const holgerLow = [
+    null,
+    { book: 300,  xp: 30600,  time: 510 },  // 1->2
+    { book: 600,  xp: 61800,  time: 1030 }, // 2->3
+    { book: 900,  xp: 93000,  time: 1550 }, // 3->4
+    { book: 1200, xp: 124200, time: 2070 }, // 4->5
+    { book: 1500, xp: 155400, time: 2590 }, // 5->6
+    { book: 1800, xp: 186600, time: 3110 }, // 6->7
+    { book: 2100, xp: 217200, time: 3620 }, // 7->8
+    { book: 2400, xp: 248400, time: 4140 }, // 8->9
+    { book: 2700, xp: 279600, time: 4660 }, // 9->10
+  ];
+
+  // ------------------------------------------
+  // ロムルス専用データ (画像解析値)
+  // ------------------------------------------
+
+  // スキル1 (忠誠タグ: 最大Lv10)
+  // XP: 30600 -> 61800 -> ... -> 279600
+  const romulusS1 = [
+    null,
+    { book: 300,  xp: 30600,  time: 510 },  // 1->2
+    { book: 600,  xp: 61800,  time: 1030 }, // 2->3
+    { book: 900,  xp: 93000,  time: 1550 }, // 3->4
+    { book: 1200, xp: 124200, time: 2070 }, // 4->5
+    { book: 1500, xp: 155400, time: 2590 }, // 5->6
+    { book: 1800, xp: 186600, time: 3110 }, // 6->7
+    { book: 2100, xp: 217200, time: 3620 }, // 7->8
+    { book: 2400, xp: 248400, time: 4140 }, // 8->9
+    { book: 2700, xp: 279600, time: 4660 }, // 9->10
+  ];
+  // スキル2 (最大Lv20)
+  const romulusS2 = [
+    null,
+    { book: 500,   xp: 86400,   time: 1440 },  // 1->2
+    { book: 1000,  xp: 172800,  time: 2880 },  // 2->3
+    { book: 1500,  xp: 259200,  time: 4320 },  // 3->4
+    { book: 2000,  xp: 345600,  time: 5760 },  // 4->5
+    { book: 2500,  xp: 432000,  time: 7200 },  // 5->6
+    { book: 3000,  xp: 518400,  time: 8640 },  // 6->7
+    { book: 3500,  xp: 604800,  time: 10080 }, // 7->8
+    { book: 4000,  xp: 691200,  time: 11520 }, // 8->9
+    { book: 4500,  xp: 777600,  time: 12960 }, // 9->10
+    { book: 5000,  xp: 864000,  time: 14400 }, // 10->11
+    { book: 5500,  xp: 950400,  time: 15840 }, // 11->12
+    { book: 6000,  xp: 1036800, time: 17280 }, // 12->13
+    { book: 7000,  xp: 1209600, time: 20160 }, // 13->14
+    { book: 8000,  xp: 1382400, time: 23040 }, // 14->15
+    { book: 8000,  xp: 1382400, time: 23040 }, // 15->16
+    { book: 9000,  xp: 1555200, time: 25920 }, // 16->17
+    { book: 9000,  xp: 1555200, time: 25920 }, // 17->18
+    { book: 10000, xp: 1728000, time: 28800 }, // 18->19
+    { book: 10000, xp: 1728000, time: 28800 }, // 19->20
+  ];
+  // スキル3 (最大Lv20)
+  // XP: 159000 -> 297600 -> ... -> 2980800
+  const romulusS3 = [
+    null,
+    { book: 800,   xp: 159000,  time: 2650 },  // 1->2
+    { book: 1500,  xp: 297600,  time: 4960 },  // 2->3
+    { book: 2200,  xp: 436800,  time: 7280 },  // 3->4
+    { book: 3000,  xp: 595800,  time: 9930 },  // 4->5
+    { book: 3800,  xp: 754800,  time: 12580 }, // 5->6
+    { book: 4500,  xp: 894000,  time: 14900 }, // 6->7
+    { book: 5200,  xp: 1033200, time: 17220 }, // 7->8
+    { book: 6000,  xp: 1192200, time: 19870 }, // 8->9
+    { book: 6800,  xp: 1351200, time: 22520 }, // 9->10
+    { book: 7500,  xp: 1490400, time: 24840 }, // 10->11
+    { book: 8200,  xp: 1629000, time: 27150 }, // 11->12
+    { book: 9000,  xp: 1788000, time: 29800 }, // 12->13
+    { book: 10500, xp: 2086200, time: 34770 }, // 13->14
+    { book: 12000, xp: 2384400, time: 39740 }, // 14->15
+    { book: 12000, xp: 2384400, time: 39740 }, // 15->16
+    { book: 13500, xp: 2682600, time: 44710 }, // 16->17
+    { book: 13500, xp: 2682600, time: 44710 }, // 17->18
+    { book: 15000, xp: 2980800, time: 49680 }, // 18->19
+    { book: 15000, xp: 2980800, time: 49680 }, // 19->20
+  ];
+  // Skill 4 (Max Lv20)
+  // XP: 179400 -> 336600 -> ... -> 3369600
+  const romulusS4 = [
+    null,
+    { book: 800,   xp: 179400,  time: 2990 },  // 1->2
+    { book: 1500,  xp: 336600,  time: 5610 },  // 2->3
+    { book: 2200,  xp: 493800,  time: 8230 },  // 3->4
+    { book: 3000,  xp: 673800,  time: 11230 }, // 4->5
+    { book: 3800,  xp: 853200,  time: 14220 }, // 5->6
+    { book: 4500,  xp: 1010400, time: 16840 }, // 6->7
+    { book: 5200,  xp: 1167600, time: 19460 }, // 7->8
+    { book: 6000,  xp: 1347600, time: 22460 }, // 8->9
+    { book: 6800,  xp: 1527600, time: 25460 }, // 9->10
+    { book: 7500,  xp: 1684800, time: 28080 }, // 10->11
+    { book: 8200,  xp: 1842000, time: 30700 }, // 11->12
+    { book: 9000,  xp: 2021400, time: 33690 }, // 12->13
+    { book: 10500, xp: 2358600, time: 39310 }, // 13->14
+    { book: 12000, xp: 2695200, time: 44920 }, // 14->15
+    { book: 12000, xp: 2695200, time: 44920 }, // 15->16
+    { book: 13500, xp: 3032400, time: 50540 }, // 16->17
+    { book: 13500, xp: 3032400, time: 50540 }, // 17->18
+    { book: 15000, xp: 3369600, time: 56160 }, // 18->19
+    { book: 15000, xp: 3369600, time: 56160 }, // 19->20
+  ];
+
+  // ------------------------------------------
+  // バルド専用データ
+  // ------------------------------------------
+
+  // Skill 4 (High Cost: Max Lv10)
+  // XP: 51600 -> 103200 -> ... -> 466200
+  const bardHigh = [
+    null,
+    { book: 500,  xp: 51600,  time: 860 },  // 1->2
+    { book: 1000, xp: 103200, time: 1720 }, // 2->3
+    { book: 1500, xp: 155400, time: 2590 }, // 3->4
+    { book: 2000, xp: 207000, time: 3450 }, // 4->5
+    { book: 2500, xp: 259200, time: 4320 }, // 5->6
+    { book: 3000, xp: 310800, time: 5180 }, // 6->7
+    { book: 3500, xp: 362400, time: 6040 }, // 7->8
+    { book: 4000, xp: 414600, time: 6910 }, // 8->9
+    { book: 4500, xp: 466200, time: 7770 }, // 9->10
+  ];
+
+  // Skill 1〜3 (Low Cost: Max Lv10)
+  // XP: 25800 -> 51600 -> ... -> 232800
+  const bardLow = [
+    null,
+    { book: 300,  xp: 25800,  time: 430 },  // 1->2
+    { book: 600,  xp: 51600,  time: 860 },  // 2->3
+    { book: 900,  xp: 77400,  time: 1290 }, // 3->4
+    { book: 1200, xp: 103200, time: 1720 }, // 4->5
+    { book: 1500, xp: 129600, time: 2160 }, // 5->6
+    { book: 1800, xp: 155400, time: 2590 }, // 6->7
+    { book: 2100, xp: 181200, time: 3020 }, // 7->8
+    { book: 2400, xp: 207000, time: 3450 }, // 8->9
+    { book: 2700, xp: 232800, time: 3880 }, // 9->10
+  ];
+
+  // ------------------------------------------
+  // ファビアン専用データ
+  // ------------------------------------------
+
+  // スキル1 (最大Lv10) - 初期XP 25,800
+  // XP: 25800 -> 51600 -> ... -> 232800
+  const fabianS1 = [
+    null,
+    { book: 300,  xp: 25800,  time: 430 },  // 1->2
+    { book: 600,  xp: 51600,  time: 860 },  // 2->3
+    { book: 900,  xp: 77400,  time: 1290 }, // 3->4
+    { book: 1200, xp: 103200, time: 1720 }, // 4->5
+    { book: 1500, xp: 129600, time: 2160 }, // 5->6
+    { book: 1800, xp: 155400, time: 2590 }, // 6->7
+    { book: 2100, xp: 181200, time: 3020 }, // 7->8
+    { book: 2400, xp: 207000, time: 3450 }, // 8->9
+    { book: 2700, xp: 232800, time: 3880 }, // 9->10
+  ];
+
+  // スキル2 (最大Lv10) - 初期XP 53,400 (補正済み)
+  // XP: 53400 -> 107400 -> ... -> 483600
+  const fabianS2 = [
+    null,
+    { book: 500,  xp: 53400,  time: 890 },  // 1->2 (補正値)
+    { book: 1000, xp: 107400, time: 1790 }, // 2->3
+    { book: 1500, xp: 160800, time: 2680 }, // 3->4
+    { book: 2000, xp: 214800, time: 3580 }, // 4->5
+    { book: 2500, xp: 268800, time: 4480 }, // 5->6
+    { book: 3000, xp: 322200, time: 5370 }, // 6->7
+    { book: 3500, xp: 376200, time: 6270 }, // 7->8
+    { book: 4000, xp: 429600, time: 7160 }, // 8->9
+    { book: 4500, xp: 483600, time: 8060 }, // 9->10
+  ];
+
+  // スキル3 (最大Lv20) - 初期XP 27,600
+  // XP: 27600 -> 69000 -> ... -> 705000
+  const fabianS3 = [
+    null,
+    { book: 200,  xp: 27600,  time: 460 },   // 1->2
+    { book: 500,  xp: 69000,  time: 1150 },  // 2->3
+    { book: 700,  xp: 96600,  time: 1610 },  // 3->4
+    { book: 1000, xp: 138000, time: 2300 },  // 4->5
+    { book: 1200, xp: 165600, time: 2760 },  // 5->6
+    { book: 1500, xp: 207000, time: 3450 },  // 6->7
+    { book: 1700, xp: 234600, time: 3910 },  // 7->8
+    { book: 2000, xp: 276000, time: 4600 },  // 8->9
+    { book: 2300, xp: 318000, time: 5300 },  // 9->10
+    { book: 2500, xp: 345600, time: 5760 },  // 10->11
+    { book: 2700, xp: 373200, time: 6220 },  // 11->12
+    { book: 3000, xp: 414600, time: 6910 },  // 12->13
+    { book: 3500, xp: 483600, time: 8060 },  // 13->14
+    { book: 4000, xp: 552600, time: 9210 },  // 14->15
+    { book: 4000, xp: 552600, time: 9210 },  // 15->16
+    { book: 4500, xp: 621600, time: 10360 }, // 16->17
+    { book: 4500, xp: 621600, time: 10360 }, // 17->18
+    { book: 5100, xp: 705000, time: 11750 }, // 18->19
+    { book: 5100, xp: 705000, time: 11750 }, // 19->20
+  ];
+
+  // スキル4 (最大Lv20) - 初期XP 46,200
+  // XP: 46200 -> 108600 -> ... -> 1104000
+  const fabianS4 = [
+    null,
+    { book: 300,  xp: 46200,   time: 770 },   // 1->2
+    { book: 700,  xp: 108600,  time: 1810 },  // 2->3
+    { book: 1000, xp: 155400,  time: 2590 },  // 3->4
+    { book: 1400, xp: 217200,  time: 3620 },  // 4->5
+    { book: 1800, xp: 279600,  time: 4660 },  // 5->6
+    { book: 2100, xp: 326400,  time: 5440 },  // 6->7
+    { book: 2400, xp: 373200,  time: 6220 },  // 7->8
+    { book: 2800, xp: 435000,  time: 7250 },  // 8->9
+    { book: 3200, xp: 497400,  time: 8290 },  // 9->10
+    { book: 3500, xp: 544200,  time: 9070 },  // 10->11
+    { book: 3800, xp: 591000,  time: 9850 },  // 11->12
+    { book: 4200, xp: 652800,  time: 10880 }, // 12->13
+    { book: 4900, xp: 762000,  time: 12700 }, // 13->14
+    { book: 5700, xp: 886200,  time: 14770 }, // 14->15
+    { book: 5700, xp: 886200,  time: 14770 }, // 15->16
+    { book: 6400, xp: 994800,  time: 16580 }, // 16->17
+    { book: 6400, xp: 994800,  time: 16580 }, // 17->18
+    { book: 7100, xp: 1104000, time: 18400 }, // 18->19
+    { book: 7100, xp: 1104000, time: 18400 }, // 19->20
+  ];
+
+  // ------------------------------------------
+  // ヴァレリア専用データ (画像解析値)
+  // ------------------------------------------
+  // スキル1
+  const valeriaS1 = [
+    null,
+    { book: 500,  xp: 43200,  time: 720 },  // 1->2
+    { book: 1000, xp: 86400,  time: 1440 }, // 2->3
+    { book: 1500, xp: 129600, time: 2160 }, // 3->4
+    { book: 2000, xp: 172800, time: 2880 }, // 4->5
+    { book: 2500, xp: 216000, time: 3600 }, // 5->6
+    { book: 3000, xp: 259200, time: 4320 }, // 6->7
+    { book: 3500, xp: 302400, time: 5040 }, // 7->8
+    { book: 4000, xp: 345600, time: 5760 }, // 8->9
+    { book: 4500, xp: 388800, time: 6480 }, // 9->10
+  ];
+
+  // スキル2
+  const valeriaS2 = [
+    null,
+    { book: 500,  xp: 60480,  time: 1008 }, // 1->2
+    { book: 1000, xp: 120960, time: 2016 }, // 2->3
+    { book: 1500, xp: 181440, time: 3024 }, // 3->4
+    { book: 2000, xp: 241920, time: 4032 }, // 4->5
+    { book: 2500, xp: 302400, time: 5040 }, // 5->6
+    { book: 3000, xp: 362880, time: 6048 }, // 6->7
+    { book: 3500, xp: 423360, time: 7056 }, // 7->8
+    { book: 4000, xp: 483840, time: 8064 }, // 8->9
+    { book: 4500, xp: 544320, time: 9072 }, // 9->10
+  ];
+
+  // スキル3
+  const valeriaS3 = [
+    null,
+    { book: 800,   xp: 110640,  time: 1844 }, // 1->2
+    { book: 1500,  xp: 207360,  time: 3456 }, // 2->3
+    { book: 2200,  xp: 304140,  time: 5069 }, // 3->4
+    { book: 3000,  xp: 414720,  time: 6912 }, // 4->5
+    { book: 3800,  xp: 525360,  time: 8756 }, // 5->6
+    { book: 4500,  xp: 622080,  time: 10368 }, // 6->7
+    { book: 5200,  xp: 718860,  time: 11981 }, // 7->8
+    { book: 6000,  xp: 829440,  time: 13824 }, // 8->9
+    { book: 6800,  xp: 940080,  time: 15668 }, // 9->10
+    { book: 7500,  xp: 1036800, time: 17280 }, // 10->11
+    { book: 8200,  xp: 1133580, time: 18893 }, // 11->12
+    { book: 9000,  xp: 1244160, time: 20736 }, // 12->13
+    { book: 10500, xp: 1451520, time: 24192 }, // 13->14
+    { book: 12000, xp: 1658880, time: 27648 }, // 14->15
+    { book: 12000, xp: 1658880, time: 27648 }, // 15->16 (画像の通り)
+    { book: 13500, xp: 1866240, time: 31104 }, // 16->17
+    { book: 13500, xp: 1866240, time: 31104 }, // 17->18
+    { book: 15000, xp: 2073600, time: 34560 }, // 18->19
+    { book: 15000, xp: 2073600, time: 34560 }, // 19->20
+  ];
+
+  // スキル4
+  const valeriaS4 = [
+    null,
+    { book: 800,   xp: 124440,  time: 2074 }, // 1->2
+    { book: 1500,  xp: 233280,  time: 3888 }, // 2->3
+    { book: 2200,  xp: 342180,  time: 5703 }, // 3->4
+    { book: 3000,  xp: 466560,  time: 7776 }, // 4->5
+    { book: 3800,  xp: 591000,  time: 9850 }, // 5->6
+    { book: 4500,  xp: 699840,  time: 11664 }, // 6->7
+    { book: 5200,  xp: 808740,  time: 13479 }, // 7->8
+    { book: 6000,  xp: 933120,  time: 15552 }, // 8->9
+    { book: 6800,  xp: 1057560, time: 17626 }, // 9->10
+    { book: 7500,  xp: 1166400, time: 19440 }, // 10->11
+    { book: 8200,  xp: 1275300, time: 21255 }, // 11->12
+    { book: 9000,  xp: 1399680, time: 23328 }, // 12->13
+    { book: 10500, xp: 1632960, time: 27216 }, // 13->14
+    { book: 12000, xp: 1866240, time: 31104 }, // 14->15
+    { book: 12000, xp: 1866240, time: 31104 }, // 15->16
+    { book: 13500, xp: 2099520, time: 34992 }, // 16->17
+    { book: 13500, xp: 2099520, time: 34992 }, // 17->18
+    { book: 15000, xp: 2332800, time: 38880 }, // 18->19
+    { book: 15000, xp: 2332800, time: 38880 }, // 19->20
+  ];
+
+  // スキルデータマッピング
+  const skillDataMap = {
+    "cyril":   [cyrilS1, cyrilS2, cyrilS3, cyrilS4],
+    "agnes":   [agnesS1, agnesS2, agnesS3, agnesS4],
+    "holger":  [holgerHigh, holgerLow, holgerLow, holgerHigh],
+    "romulus": [romulusS1, romulusS2, romulusS3, romulusS4],
+    "bard": [bardLow,bardLow, bardLow,bardHigh],
+    "fabian": [fabianS1, fabianS2, fabianS3, fabianS4],
+    "valeria": [valeriaS1, valeriaS2, valeriaS3, valeriaS4]
+  };
+
+  // ==========================================
+  // ■ スキルレベル上限管理 (Max Level Control)
+  // ==========================================
+
+  // 専門家ごとのスキル上限設定 [スキル1, スキル2, スキル3, スキル4]
+  const skillMaxLevels = {
+    "cyril":   [10, 5, 5, 10],
+    "agnes":   [5, 5, 5, 10],
+    "holger":  [10, 10, 10, 10],
+    "romulus": [10, 20, 20, 20],
+    "bard":    [10, 10, 10, 10],
+    "fabian":  [10, 10, 20, 20],
+    "valeria": [10, 10, 20, 20]
+  };
+
+  // 選択された専門家に応じて入力欄の max 属性を更新する関数
+  function updateSkillLimits() {
+    const charType = document.getElementById("charSelect").value;
+    const limits = skillMaxLevels[charType];
+
+    if (!limits) return;
+
+    for (let i = 1; i <= 4; i++) {
+      const maxVal = limits[i - 1];
+
+      // 現在Lvと目標Lvの入力欄を取得
+      const curInput = document.getElementById(`s${i}_cur`);
+      const tarInput = document.getElementById(`s${i}_tar`);
+
+      // max属性を更新
+      curInput.max = maxVal;
+      tarInput.max = maxVal;
+
+      // もし現在の入力値が新しい上限を超えていたら修正する
+      if (parseInt(curInput.value) > maxVal) curInput.value = maxVal;
+      if (parseInt(tarInput.value) > maxVal) tarInput.value = maxVal;
+    }
+  }
+
+  // ページ読み込み時に一度実行して初期状態をセット
+  document.addEventListener('DOMContentLoaded', updateSkillLimits);
+
+
+// ==========================================
+// ロジック (Logic)
+// ==========================================
+
+// タブ切り替え
+function switchTab(tabName) {
+  // ボタンのアクティブ化
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+
+  // コンテンツの切り替え
+  document.getElementById('tab-favor').classList.add('hidden');
+  document.getElementById('tab-skill').classList.add('hidden');
+  document.getElementById('tab-' + tabName).classList.remove('hidden');
+}
+
+// 好感度計算
+function getMarkCost(charType, levelCheck) {
+  if (levelCheck % 10 !== 0) return 0;
+  const step = levelCheck / 10;
+  switch(charType) {
+    case "cyril": case "agnes": return step * 5;
+    case "holger": return step * 8;
+    case "romulus":
+      if (levelCheck === 10) return 20;
+      if (levelCheck === 20) return 40;
+      if (levelCheck === 30) return 80;
+      if (levelCheck === 40) return 120;
+      if (levelCheck === 50) return 160;
+      if (levelCheck === 60) return 200;
+      if (levelCheck === 70) return 240;
+      if (levelCheck === 80) return 280;
+      if (levelCheck === 90) return 320;
+      if (levelCheck === 100) return 360;
+      return 0;
+    case "bard": return step * 6;
+    case "fabian": return step * 12;
+    case "valeria": return step * 20;
+    default: return 0;
+  }
+}
+
+function calculateFavor() {
+  const charType = document.getElementById("charSelect").value;
+  let start = parseInt(document.getElementById("currentLv").value);
+  let end = parseInt(document.getElementById("targetLv").value);
+
+  if (start >= end) { alert("目標レベルは現在レベルより高く設定してください"); return; }
+
+  let totalFavor = 0;
+  let totalMarks = 0;
+  const selectedTable = favorDataMap[charType];
+
+  for (let lv = start; lv < end; lv++) {
+    if (selectedTable[lv] !== undefined) totalFavor += selectedTable[lv];
+    let nextLv = lv + 1;
+    if (nextLv % 10 === 0) totalMarks += getMarkCost(charType, nextLv);
+  }
+  document.getElementById("resFavorVal").innerText = totalFavor.toLocaleString();
+  document.getElementById("resMarkVal").innerText = totalMarks.toLocaleString();
+  document.getElementById("resFavorArea").style.display = "block";
+}
+
+  // スキルコスト計算 (専門家別・スキル別対応版)
+  function calculateSkill() {
+    let totalBook = 0;
+    let totalXP = 0;
+    let totalTime = 0;
+
+    // 1. 選択中の専門家データ(4つの配列のセット)を取得
+    const charType = document.getElementById("charSelect").value;
+    const currentSkillData = skillDataMap[charType];
+
+    if (!currentSkillData) {
+      alert("データ読み込みエラー"); return;
+    }
+
+    // 2. 4つのスキルをループ
+    for (let i = 1; i <= 4; i++) {
+      const isActive = document.getElementById(`s${i}_active`).checked;
+      if (!isActive) continue;
+
+      let sStart = parseInt(document.getElementById(`s${i}_cur`).value);
+      let sEnd = parseInt(document.getElementById(`s${i}_tar`).value);
+
+      if (sStart >= sEnd) continue;
+
+      // ★ここで各スキルに対応したテーブルを取得 (i-1)
+      const skillTable = currentSkillData[i - 1];
+
+      // Lv上昇ごとのコストを加算
+      for (let lv = sStart; lv < sEnd; lv++) {
+        const cost = skillTable[lv];
+        if (cost) {
+          totalBook += cost.book;
+          totalXP += cost.xp;
+          totalTime += cost.time;
+        }
+      }
+    }
+
+    // (forループが終わった後の、時間の整形部分を修正)
+
+    // 時間の整形 (h m / d h m)
+    const totalHours = Math.floor(totalTime / 60);
+    const mins = totalTime % 60;
+    const days = Math.floor(totalHours / 24);
+    const dayHours = totalHours % 24;
+
+    // 基本表示: "25h 30m"
+    let timeStr = `${totalHours}h ${mins}m`;
+
+    // 24時間を超える場合は日数表記も追加: " (1d 1h 30m)"
+    if (days > 0) {
+      timeStr += ` (${days}d ${dayHours}h ${mins}m)`;
+    }
+
+    // 結果の表示
+    document.getElementById("resBook").innerText = totalBook.toLocaleString();
+    document.getElementById("resXP").innerText = totalXP.toLocaleString();
+    document.getElementById("resTime").innerText = totalTime.toLocaleString(); // ここは「分」のまま
+    document.getElementById("resTimeFormatted").innerText = timeStr; // 整形した時間を下に表示
+
+    document.getElementById("resSkillArea").style.display = "block";
+  }
+</script>
+
+</body>
+</html>

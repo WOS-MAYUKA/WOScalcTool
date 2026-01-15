@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英雄進化コスト計算機 | WOS Tools</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* --- 共通デザイン定義 --- */
+  :root {
+    --bg-deep: #020617;
+    --glass-surface: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --accent-ice: #22d3ee;
+    --accent-fire: #f97316;
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+
+    /* ランク別カラー */
+    --rank-ssr: #f97316; /* オレンジ */
+    --rank-sr: #a855f7;  /* 紫 */
+    --rank-r: #3b82f6;   /* 青 */
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* 背景設定 */
+  .bg-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2;
+    background-image: url('image.png'); /* トップページと同じ画像 */
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.6) contrast(1.1) blur(2px);
+  }
+  .bg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 90%);
+    pointer-events: none;
+  }
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj48Y2lyY2xlIGN4PSI1IiBjeT0iNSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+PC9zdmc+');
+    animation: snow 25s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 50px 500px; } }
+
+  /* コンテナ */
+  .container {
+    position: relative; z-index: 1; width: 100%; max-width: 800px;
+    padding: 40px 20px; box-sizing: border-box;
+  }
+
+  /* ナビゲーション */
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-sub); text-decoration: none;
+    margin-bottom: 30px; transition: 0.3s; font-size: 0.9rem;
+  }
+  .nav-back:hover { color: var(--accent-ice); transform: translateX(-5px); }
+
+  /* カードデザイン */
+  .calc-card {
+    background: var(--glass-surface);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  h2 {
+    text-align: center; font-size: 1.8rem; margin: 0 0 30px 0;
+    color: var(--text-main); letter-spacing: 0.1em;
+    text-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 20px;
+  }
+
+  label {
+    display: block; margin-top: 20px; margin-bottom: 8px;
+    font-weight: 700; font-size: 0.9rem; color: var(--accent-ice);
+    letter-spacing: 0.05em;
+  }
+
+  /* 入力フォーム */
+  select, input {
+    width: 100%; padding: 14px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-main); font-size: 16px;
+    box-sizing: border-box; transition: 0.3s;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent-ice); outline: none;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* ステータス入力エリア（Flexbox） */
+  .status-row {
+    display: flex; gap: 15px; align-items: flex-end;
+  }
+  .status-group { flex: 1; }
+
+  /* 計算ボタン */
+  button.calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent-ice), #0ea5e9);
+    color: #fff; padding: 18px; border: none; border-radius: 50px;
+    font-size: 1.1rem; font-weight: bold; margin-top: 30px;
+    cursor: pointer; transition: 0.3s; letter-spacing: 0.1em;
+    box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+  }
+  button.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+  }
+  button.calc-btn:active { transform: scale(0.98); }
+
+  /* 結果表示エリア */
+  .result-container {
+    margin-top: 40px; background-color: rgba(0,0,0,0.3);
+    border-radius: 12px; padding: 25px;
+    border: 1px solid var(--accent-ice);
+    box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
+    animation: fadeIn 0.5s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .result-label { 
+    font-size: 1rem; color: var(--text-sub); 
+    display: flex; align-items: center; gap: 10px;
+  }
+  .result-value {
+    font-size: 2rem; font-weight: 800; color: var(--accent-ice);
+    font-family: "Helvetica Neue", sans-serif;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  }
+  .result-note {
+    font-size: 0.75rem; color: var(--text-sub); text-align: right; margin-top: 5px;
+  }
+
+  /* アイコン色設定（JSで切り替え） */
+  .piece-icon { transition: color 0.3s; }
+  .piece-ssr { color: var(--rank-ssr); text-shadow: 0 0 10px rgba(249, 115, 22, 0.4); }
+  .piece-sr { color: var(--rank-sr); text-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+  .piece-r { color: var(--rank-r); text-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+
+  footer {
+    margin-top: auto; padding: 40px; width: 100%; text-align: center;
+    color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+<div class="snow-container"></div>
+
+<div class="container">
+  <a href="index.html" class="nav-back"><i class="fas fa-chevron-left"></i> トップページに戻る</a>
+
+  <div class="calc-card">
+    <h1>英雄進化コスト計算機</h1>
+
+    <label>英雄レアリティ</label>
+    <select id="heroRank" onchange="updateRankColor()">
+      <option value="r" style="color:var(--rank-r);">R</option>
+       <option value="sr" style="color:var(--rank-sr);">SR</option>
+      <option value="ssr" style="color:var(--rank-ssr);">SSR</option>
+ </select>
+
+    <div style="margin-top: 20px; font-size:0.9rem; color:var(--accent-ice); margin-bottom:10px;">
+      <i class="fas fa-caret-right"></i> 現在の状態
+    </div>
+    <div class="status-row">
+      <div class="status-group">
+        <label style="margin-top:0; font-size:0.8rem;">星 (Star)</label>
+        <select id="curStar">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="status-group">
+        <label style="margin-top:0; font-size:0.8rem;">段階 (Tier)</label>
+        <select id="curTier">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; font-size:0.9rem; color:var(--accent-fire); margin-bottom:10px;">
+      <i class="fas fa-caret-right"></i> 目標の状態
+    </div>
+    <div class="status-row">
+      <div class="status-group">
+        <label style="margin-top:0; font-size:0.8rem;">星 (Star)</label>
+        <select id="tarStar">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5" selected>5 (MAX)</option>
+        </select>
+      </div>
+      <div class="status-group">
+        <label style="margin-top:0; font-size:0.8rem;">段階 (Tier)</label>
+        <select id="tarTier">
+          <option value="0" selected>0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculateHeroCost()">必要ピース数を計算</button>
+
+    <div class="result-container" id="resultArea" style="display:none;">
+      <div class="result-row">
+        <span class="result-label">
+          <i id="resPieceIcon" class="fas fa-puzzle-piece piece-icon piece-ssr"></i> 必要ピース数
+        </span>
+        <span class="result-value" id="resShards">0</span>
+      </div>
+      <div class="result-note">※英雄解放コストは含みません</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  &copy; 2026 WOS Tools Created by MAYUKA
+</footer>
+
+<script>
+// ==========================================
+// データ定義 (Data Definition)
+// ==========================================
+
+// 全ランク共通コスト (SSR/SR/R)
+// [Tier1, Tier2, Tier3, Tier4, Tier5, Tier6]
+// ※ Tier6のコストを払うと次の星へ昇格する
+const commonCost = [
+  [1, 1, 2, 2, 2, 2],       // 星0
+  [5, 5, 5, 5, 5, 15],      // 星1
+  [15, 15, 15, 15, 15, 40], // 星2
+  [40, 40, 40, 40, 40, 100], // 星3
+  [100, 100, 100, 100, 100, 100] // 星4
+];
+
+// ==========================================
+// ロジック (Logic)
+// ==========================================
+
+// ランク選択時にアイコン色とセレクト文字色を変更
+function updateRankColor() {
+  const select = document.getElementById("heroRank");
+  const icon = document.getElementById("resPieceIcon");
+  const val = select.value;
+
+  // セレクトボックスの文字色変更
+  if(val === "ssr") select.style.color = "var(--rank-ssr)";
+  else if(val === "sr") select.style.color = "var(--rank-sr)";
+  else select.style.color = "var(--rank-r)";
+
+  // 結果欄のアイコン色変更
+  icon.classList.remove("piece-ssr", "piece-sr", "piece-r");
+  if(val === "ssr") icon.classList.add("piece-ssr");
+  else if(val === "sr") icon.classList.add("piece-sr");
+  else icon.classList.add("piece-r");
+}
+
+function calculateHeroCost() {
+  const curStar = parseInt(document.getElementById("curStar").value);
+  const curTier = parseInt(document.getElementById("curTier").value);
+  const tarStar = parseInt(document.getElementById("tarStar").value);
+  const tarTier = parseInt(document.getElementById("tarTier").value);
+
+  // 全ランク共通データを使用
+  const costTable = commonCost;
+
+  let totalShards = 0;
+
+  // 計算用の一時変数
+  let s = curStar;
+  let t = curTier;
+
+  // 安全装置
+  let loopCount = 0;
+  const maxLoops = 1000; 
+
+  while (loopCount < maxLoops) {
+    loopCount++;
+
+    // 目標に到達したら終了
+    // (星が目標より大きい、または、星が同じでTierが目標以上)
+    if (s > tarStar || (s === tarStar && t >= tarTier)) {
+      break;
+    }
+
+    // 星5(MAX)に到達したら終了
+    // (テーブルには星4->5までのデータしかないのでs=5になったら終わり)
+    if (s >= 5) {
+        break; 
+    }
+
+    // Tier 6 (MAX) の場合、次の星へランクアップ
+    // コストはTier 5->6で支払い済みなので、ここではコスト加算せず状態だけ更新
+    if (t === 6) {
+      s++;
+      t = 0;
+      continue; 
+    }
+
+    // コスト加算
+    if (s < costTable.length) {
+      // costTable[s][t] は、Tier t -> t+1 にするコスト
+      // Tier 5の場合、index 5 (Tier6へのコスト) が加算され、次は t=6 になる
+      totalShards += costTable[s][t];
+    }
+
+    // Tierを進める
+    t++;
+  }
+
+  // 入力チェック（逆転時など）
+  if (totalShards === 0 && (curStar > tarStar || (curStar === tarStar && curTier > tarTier))) {
+    alert("目標は現在より高い状態に設定してください");
+    return;
+  }
+
+  document.getElementById("resShards").innerText = totalShards.toLocaleString();
+  document.getElementById("resultArea").style.display = "block";
+}
+
+// 初期化
+document.addEventListener('DOMContentLoaded', updateRankColor);
+
+</script>
+
+</body>
+</html>

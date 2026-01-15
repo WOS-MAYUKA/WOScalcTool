@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>育成タイプ診断</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* --- 基本設定（index.htmlと同じ） --- */
+  :root {
+    --bg-deep: #020617;
+    --glass-surface: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --accent-ice: #22d3ee;
+    --accent-fire: #f97316;
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* 背景設定 */
+  .bg-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2;
+    background-image: url('image.png'); /* トップページと同じ背景画像を指定 */
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.6) contrast(1.1) blur(2px);
+  }
+  .bg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 90%);
+    pointer-events: none;
+  }
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj48Y2lyY2xlIGN4PSI1IiBjeT0iNSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+PC9zdmc+');
+    animation: snow 25s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 50px 500px; } }
+
+  .container {
+    position: relative; z-index: 1; width: 100%; max-width: 1000px;
+    padding: 80px 20px; box-sizing: border-box;
+  }
+
+  /* ヘッダー */
+  header { text-align: center; margin-bottom: 50px; }
+  h1 {
+    font-size: 2.5rem; font-weight: 900; margin: 0; letter-spacing: 0.15em;
+    color: var(--text-main); text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+    line-height: 1.2; margin-bottom: 10px;
+  }
+  p.subtitle {
+    font-size: 0.85rem; color: var(--accent-ice); letter-spacing: 0.2em;
+    text-transform: uppercase; opacity: 0.9; margin: 0;
+  }
+
+  /* ナビゲーション（戻るボタン） */
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-sub); text-decoration: none;
+    margin-bottom: 40px; transition: 0.3s; font-size: 0.9rem;
+  }
+  .nav-back:hover { color: var(--accent-ice); transform: translateX(-5px); }
+
+  /* --- 診断ページ独自スタイル --- */
+
+  /* セクション共通 */
+  .diag-section { margin-bottom: 80px; }
+  .section-head {
+    font-size: 1.5rem; font-weight: 700; margin-bottom: 30px;
+    border-left: 4px solid var(--accent-ice); padding-left: 15px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* 3つの軸エリア */
+  .axis-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
+  }
+  .axis-card {
+    background: var(--glass-surface); border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px); padding: 25px; border-radius: 8px;
+  }
+  .axis-title {
+    color: var(--accent-ice); font-weight: bold; margin-bottom: 15px;
+    font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;
+  }
+  .axis-desc { font-size: 0.9rem; color: var(--text-sub); line-height: 1.6; }
+  .axis-vs {
+    display: flex; justify-content: space-between; margin-top: 15px; font-weight: bold; font-size: 0.85rem;
+  }
+  .vs-left { color: var(--accent-fire); }
+  .vs-right { color: var(--accent-ice); }
+
+  /* タイプ一覧エリア */
+  .type-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;
+  }
+  .type-card {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border);
+    border-radius: 8px; overflow: hidden; transition: 0.3s;
+  }
+  .type-card:hover { transform: translateY(-5px); border-color: var(--accent-ice); }
+
+  /* カード画像エリア（画像がない場合はプレースホルダー） */
+  .type-img-area {
+    width: 100%; aspect-ratio: 1 / 1; background: #1e293b;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .type-img-area img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .type-content { padding: 15px; }
+  .type-code {
+    font-size: 0.7rem; color: var(--accent-ice); border: 1px solid var(--accent-ice);
+    display: inline-block; padding: 2px 6px; border-radius: 4px; margin-bottom: 8px;
+  }
+  .type-name { font-size: 1rem; font-weight: bold; margin-bottom: 5px; line-height: 1.4; }
+  .type-catch { font-size: 0.75rem; color: #cbd5e1; font-style: italic; margin-bottom: 10px; }
+  .type-detail { font-size: 0.8rem; color: var(--text-sub); line-height: 1.5; }
+
+  /* CTAボタン（診断へ） */
+  .cta-area { text-align: center; margin: 60px 0; }
+  .cta-btn {
+    background: linear-gradient(45deg, var(--accent-ice), #3b82f6);
+    color: #fff; font-size: 1.2rem; font-weight: bold;
+    padding: 20px 50px; border-radius: 50px; text-decoration: none;
+    display: inline-block; box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+    transition: 0.3s; letter-spacing: 0.1em;
+  }
+  .cta-btn:hover {
+    transform: scale(1.05); box-shadow: 0 0 40px rgba(34, 211, 238, 0.6);
+  }
+  .cta-note { font-size: 0.8rem; color: var(--text-sub); margin-top: 15px; }
+
+  /* 免責事項 */
+  .disclaimer-box {
+    background: rgba(0,0,0,0.5); padding: 20px; border-radius: 8px;
+    font-size: 0.8rem; color: var(--text-sub); line-height: 1.6;
+    border: 1px solid var(--glass-border);
+  }
+
+  footer {
+    margin-top: auto; padding: 40px; border-top: 1px solid var(--glass-border);
+    width: 100%; text-align: center; color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+  <div class="bg-layer"></div>
+  <div class="bg-overlay"></div>
+  <div class="snow-container"></div>
+
+  <div class="container">
+    <a href="index.html" class="nav-back"><i class="fas fa-chevron-left"></i> トップページに戻る</a>
+
+    <header>
+      <p class="subtitle">TYPE CHECKER</p>
+      <h1>育成タイプ診断</h1>
+      <p style="font-size: 0.9rem; color: var(--text-sub); margin-top: 20px; line-height: 1.6;">
+        1分であなたの「本性」が暴かれる！？<br>
+        プレイスタイルの傾向を分析し、あなたに最適なアドバイスをお伝えします。
+      </p>
+    </header>
+
+    <div class="cta-area" style="margin: 40px 0;">
+      <a href="https://forms.gle/bh36ZHB8Naa3DZgL7" target="_blank" class="cta-btn">
+        <i class="fas fa-play"></i> 診断をスタート
+      </a>
+      <p class="cta-note">※Googleフォームが開きます</p>
+    </div>
+
+    <section class="diag-section">
+      <div class="section-head">診断の仕組み（3つの軸）</div>
+      <div class="axis-grid">
+        <div class="axis-card">
+          <div class="axis-title">【軸A】目的</div>
+          <div class="axis-desc">あなたがゲームに求めているのは「戦争での勝利」か、それとも「都市の繁栄」か？</div>
+          <div class="axis-vs">
+            <span class="vs-left">覇道 (B)</span> VS <span class="vs-right">繁栄 (G)</span>
+          </div>
+        </div>
+        <div class="axis-card">
+          <div class="axis-title">【軸B】判断</div>
+          <div class="axis-desc">意思決定の際、効率やデータを重視するか、楽しさやノリを重視するか？</div>
+          <div class="axis-vs">
+            <span class="vs-left">論理 (L)</span> VS <span class="vs-right">感覚 (I)</span>
+          </div>
+        </div>
+        <div class="axis-card">
+          <div class="axis-title">【軸C】行動</div>
+          <div class="axis-desc">集団を率いて戦うのが得意か、単独で自由に動くのが好きか？</div>
+          <div class="axis-vs">
+            <span class="vs-left">統率 (T)</span> VS <span class="vs-right">孤高 (S)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="diag-section">
+      <div class="section-head">診断結果は全8タイプ</div>
+      <div class="type-grid">
+
+        <div class="type-card">
+          <div class="type-img-area">
+            <img src="picture/commander.png" alt="冷徹な軍師"         onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">B-L-T</span>
+            <div class="type-name">冷徹な軍師</div>
+            <div class="type-catch">「勝利の方程式は、すでに完成している」</div>
+            <div class="type-detail">感情に流されず「勝てる戦い」だけを選んで指揮できる真のリーダー。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/sniper.png" alt="孤高の暗殺者" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">B-L-S</span>
+            <div class="type-name">孤高の暗殺者</div>
+            <div class="type-catch">「気づいた時には、もう燃やし尽くしている」</div>
+            <div class="type-detail">敵の隙を突くゲリラ戦が得意な仕事人。手薄な城を正確に見つけ出す。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/vanguard.png" alt="情熱の特攻隊長" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">B-I-T</span>
+            <div class="type-name">情熱の特攻隊長</div>
+            <div class="type-catch">「細かいことはいい！全員突撃だァ！」</div>
+            <div class="type-detail">圧倒的な行動力で同盟の士気を爆発させるムードメーカー。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/berserker.png" alt="戦場の狂戦士" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">B-I-S</span>
+            <div class="type-name">戦場の狂戦士</div>
+            <div class="type-catch">「目の前に敵がいる。だから倒す。それだけだ」</div>
+            <div class="type-detail">純粋にバトルを楽しむ戦闘狂。予測不能な動きで敵から恐れられる。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/admin.png" alt="完璧な官僚" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">G-L-T</span>
+            <div class="type-name">完璧な官僚</div>
+            <div class="type-catch">「同盟の成長こそが、私の喜びです」</div>
+            <div class="type-detail">利益最大化に長けた参謀。スケジュール管理や指示出しが完璧。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/optimizer.png" alt="効率の鬼" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">G-L-S</span>
+            <div class="type-name">効率の鬼</div>
+            <div class="type-catch">「1ダイヤの無駄遣いも、私には許せない」</div>
+            <div class="type-detail">ポイ活や資産運用が得意。最小の投資で最大の戦力を実現する。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/healer.png" alt="みんなの癒やし" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">G-I-T</span>
+            <div class="type-name">みんなの癒やし</div>
+            <div class="type-catch">「戦うのもいいけど、みんなでお喋りしようよ！」</div>
+            <div class="type-detail">殺伐とした世界のオアシス。同盟内のコミュニケーションを支える。</div>
+          </div>
+        </div>
+
+        <div class="type-card">
+          <div class="type-img-area">
+             <img src="picture/creator.png" alt="夢見る建築家" onerror="this.style.display='none'">
+          </div>
+          <div class="type-content">
+            <span class="type-code">G-I-S</span>
+            <div class="type-name">夢見る建築家</div>
+            <div class="type-catch">「私の城、昨日よりちょっと可愛くなったかも」</div>
+            <div class="type-detail">自分のペースでコツコツと箱庭を育てることに幸せを感じる。</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div class="disclaimer-box">
+      <strong>⚠️注意事項</strong><br>
+      この診断はエンターテイメントコンテンツです。結果はあくまで目安であり、プレイスタイルを断定するものではありません。<br>
+      最終的な課金や育成の判断はご自身の責任で行ってください。<br>
+      診断結果は公式LINEにてお届けします。
+    </div>
+
+    <div class="cta-area">
+      <a href="https://forms.gle/bh36ZHB8Naa3DZgL7" target="_blank" class="cta-btn">
+        <i class="fas fa-play"></i> 診断をスタート
+      </a>
+      <p class="cta-note">回答時間：約1分</p>
+    </div>
+
+  </div>
+
+  <footer>
+    &copy; 2026 WOS Tools Created by MAYUKA
+  </footer>
+
+</body>
+</html>
