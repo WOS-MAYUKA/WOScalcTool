@@ -178,13 +178,22 @@
   }
   .result-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
   .result-label { font-size: 0.95rem; color: var(--text-sub); }
+  /* --- 既存のスタイル --- */
   .result-value {
     font-size: 1.5rem; font-weight: 800; color: var(--accent-ice);
     font-family: "Helvetica Neue", sans-serif;
     text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
   }
 
+  /* アイコン色設定 */
+  .icon-favor { color: #f43f5e; margin-right: 8px; } /* 好感度: ピンク */
+  .icon-mark  { color: #d946ef; margin-right: 8px; } /* 印: 紫 */
+  .icon-book  { color: #3b82f6; margin-right: 8px; } /* 書: 青 */
+  .icon-xp    { color: #22c55e; margin-right: 8px; } /* XP: 緑 */
+  .icon-time  { color: #fbbf24; margin-right: 8px; } /* 時間: 黄 */
+
   .hidden { display: none; }
+
 
   footer {
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
@@ -204,8 +213,8 @@
   <div class="calc-card">
     <h1>専門家コスト計算機</h1>
 
-    <label>専門家を選択</label>
-    <select id="charSelect" onchange="updateSkillLimits()">
+      <label>専門家を選択</label>
+      <select id="charSelect" onchange="updateSkillOptions()">
       <option value="cyril">シリル (Cyrille)</option>
       <option value="agnes">アグネス (Agnes)</option>
       <option value="holger">ホルガー (Holger)</option>
@@ -233,95 +242,124 @@
       </div>
 
       <button class="calc-btn" onclick="calculateFavor()">好感度コストを計算</button>
-
       <div class="result-container" id="resFavorArea" style="display:none;">
         <div class="result-row">
-          <span class="result-label">必要 好感度</span>
+          <span class="result-label">
+            <i class="fas fa-heart icon-favor"></i> 必要 好感度
+          </span>
           <span class="result-value" id="resFavorVal">0</span>
         </div>
         <div class="result-row">
-          <span class="result-label">必要 印 (関係進展素材)</span>
+          <span class="result-label">
+            <i class="fas fa-certificate icon-mark"></i> 必要 印 (関係進展素材)
+          </span>
           <span class="result-value" id="resMarkVal">0</span>
         </div>
       </div>
-    </div>
 
-    <div id="tab-skill" class="tab-content hidden">
+      </div> <div id="tab-skill" class="tab-content hidden">
 
-      <div class="skill-block">
-        <div class="skill-header">
-          <label style="margin:0; color:var(--text-main); cursor:pointer;">
-            <input type="checkbox" id="s1_active" checked> スキル 1
-          </label>
+        <div class="skill-block">
+          <div class="skill-header">
+            <label style="margin:0; color:var(--text-main); cursor:pointer;">
+              <input type="checkbox" id="s1_active" checked> スキル 1
+            </label>
+          </div>
+          <div class="skill-inputs">
+            <div>
+              <label>現在Lv</label>
+              <select id="s1_cur"></select> </div>
+            <div>
+              <label>目標Lv</label>
+              <select id="s1_tar"></select> </div>
+          </div>
         </div>
-        <div class="skill-inputs">
-          <div><label>現在Lv</label><input type="number" id="s1_cur" value="1" min="1" max="5"></div>
-          <div><label>目標Lv</label><input type="number" id="s1_tar" value="5" min="2" max="5"></div>
-        </div>
-      </div>
 
-      <div class="skill-block">
-        <div class="skill-header">
-          <label style="margin:0; color:var(--text-main); cursor:pointer;">
-            <input type="checkbox" id="s2_active" checked> スキル 2
-          </label>
+        <div class="skill-block">
+          <div class="skill-header">
+            <label style="margin:0; color:var(--text-main); cursor:pointer;">
+              <input type="checkbox" id="s2_active" checked> スキル 2
+            </label>
+          </div>
+          <div class="skill-inputs">
+            <div>
+              <label>現在Lv</label>
+              <select id="s2_cur"></select>
+            </div>
+            <div>
+              <label>目標Lv</label>
+              <select id="s2_tar"></select>
+            </div>
+          </div>
         </div>
-        <div class="skill-inputs">
-          <div><label>現在Lv</label><input type="number" id="s2_cur" value="1" min="1" max="5"></div>
-          <div><label>目標Lv</label><input type="number" id="s2_tar" value="5" min="2" max="5"></div>
-        </div>
-      </div>
 
-      <div class="skill-block">
-        <div class="skill-header">
-          <label style="margin:0; color:var(--text-main); cursor:pointer;">
-            <input type="checkbox" id="s3_active" checked> スキル 3
-          </label>
+        <div class="skill-block">
+          <div class="skill-header">
+            <label style="margin:0; color:var(--text-main); cursor:pointer;">
+              <input type="checkbox" id="s3_active" checked> スキル 3
+            </label>
+          </div>
+          <div class="skill-inputs">
+            <div>
+              <label>現在Lv</label>
+              <select id="s3_cur"></select>
+            </div>
+            <div>
+              <label>目標Lv</label>
+              <select id="s3_tar"></select>
+            </div>
+          </div>
         </div>
-        <div class="skill-inputs">
-          <div><label>現在Lv</label><input type="number" id="s3_cur" value="1" min="1" max="5"></div>
-          <div><label>目標Lv</label><input type="number" id="s3_tar" value="5" min="2" max="5"></div>
-        </div>
-      </div>
 
-      <div class="skill-block">
-        <div class="skill-header">
-          <label style="margin:0; color:var(--text-main); cursor:pointer;">
-            <input type="checkbox" id="s4_active" checked> スキル 4
-          </label>
+        <div class="skill-block">
+          <div class="skill-header">
+            <label style="margin:0; color:var(--text-main); cursor:pointer;">
+              <input type="checkbox" id="s4_active" checked> スキル 4
+            </label>
+          </div>
+          <div class="skill-inputs">
+            <div>
+              <label>現在Lv</label>
+              <select id="s4_cur"></select>
+            </div>
+            <div>
+              <label>目標Lv</label>
+              <select id="s4_tar"></select>
+            </div>
+          </div>
         </div>
-        <div class="skill-inputs">
-          <div><label>現在Lv</label><input type="number" id="s4_cur" value="1" min="1" max="5"></div>
-          <div><label>目標Lv</label><input type="number" id="s4_tar" value="5" min="2" max="5"></div>
-        </div>
-      </div>
 
       <button class="calc-btn" onclick="calculateSkill()">スキルコストを計算</button>
 
-      <div class="result-container" id="resSkillArea" style="display:none;">
-        <div class="result-row">
-          <span class="result-label">学識の書 (Book)</span>
-          <span class="result-value" id="resBook">0</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">学習経験値 (XP)</span>
-          <span class="result-value" id="resXP">0</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">加速時間 (Min)</span>
-          <div>
-            <div class="result-value" id="resTime" style="text-align:right;">0</div>
-            <div id="resTimeFormatted" style="font-size:0.8rem; color:var(--text-sub); text-align:right; margin-top:5px;"></div>
+        <div class="result-container" id="resSkillArea" style="display:none;">
+          <div class="result-row">
+            <span class="result-label" style="white-space: nowrap;">
+              <i class="fas fa-book icon-book"></i> 学識の書 (Book)
+            </span>
+            <span class="result-value" id="resBook">0</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label" style="white-space: nowrap;">
+              <i class="fas fa-star icon-xp"></i> 学習経験値 (XP)
+            </span>
+            <span class="result-value" id="resXP">0</span>
+          </div>
+          <div class="result-row" style="align-items: flex-start;">
+
+            <span class="result-label" style="white-space: nowrap; margin-top: 5px;">
+              <i class="fas fa-clock icon-time"></i> 加速時間 (Min)
+            </span>
+
+            <div style="min-width: 0;">
+              <div class="result-value" id="resTime" style="text-align:right;">0</div>
+              <div id="resTimeFormatted" style="font-size:0.75rem; color:var(--text-sub); text-align:right; margin-top:5px; white-space: nowrap;"></div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<footer>
-  &copy; 2026 WOS Tools Created by MAYUKA
-</footer>
+      </div> </div> </div> <footer>
+      &copy; 2026 WOS Tools Created by MAYUKA
+      </footer>
 
 <script>
 // ==========================================
@@ -800,32 +838,63 @@ const favorDataMap = {
   };
 
   // 選択された専門家に応じて入力欄の max 属性を更新する関数
-  function updateSkillLimits() {
+  // ==========================================
+  // ■ スキル選択肢生成 (Dynamic Option Generation)
+  // ==========================================
+
+  function updateSkillOptions() {
     const charType = document.getElementById("charSelect").value;
-    const limits = skillMaxLevels[charType];
+    const limits = skillMaxLevels[charType]; // 例: [10, 5, 5, 10]
 
     if (!limits) return;
 
     for (let i = 1; i <= 4; i++) {
-      const maxVal = limits[i - 1];
+      const maxVal = limits[i - 1]; // そのスキルの上限Lv
 
-      // 現在Lvと目標Lvの入力欄を取得
-      const curInput = document.getElementById(`s${i}_cur`);
-      const tarInput = document.getElementById(`s${i}_tar`);
+      // --- 現在Lv (sX_cur) の生成 ---
+      // 範囲: 1 〜 (上限 - 1)
+      const curSelect = document.getElementById(`s${i}_cur`);
+      const oldCurVal = parseInt(curSelect.value); // 以前の値を保存
+      curSelect.innerHTML = ""; // 一旦クリア
 
-      // max属性を更新
-      curInput.max = maxVal;
-      tarInput.max = maxVal;
+      for (let v = 1; v <= maxVal - 1; v++) {
+        const op = document.createElement("option");
+        op.value = v;
+        op.text = v;
+        curSelect.appendChild(op);
+      }
 
-      // もし現在の入力値が新しい上限を超えていたら修正する
-      if (parseInt(curInput.value) > maxVal) curInput.value = maxVal;
-      if (parseInt(tarInput.value) > maxVal) tarInput.value = maxVal;
+      // 以前の値が新しい範囲内なら維持、なければ1に戻す
+      if (oldCurVal >= 1 && oldCurVal <= maxVal - 1) {
+        curSelect.value = oldCurVal;
+      } else {
+        curSelect.value = 1;
+      }
+
+      // --- 目標Lv (sX_tar) の生成 ---
+      // 範囲: 2 〜 上限
+      const tarSelect = document.getElementById(`s${i}_tar`);
+      const oldTarVal = parseInt(tarSelect.value); // 以前の値を保存
+      tarSelect.innerHTML = ""; // 一旦クリア
+
+      for (let v = 2; v <= maxVal; v++) {
+        const op = document.createElement("option");
+        op.value = v;
+        op.text = v;
+        tarSelect.appendChild(op);
+      }
+
+      // 以前の値が新しい範囲内なら維持、なければ上限値(Max)にする
+      if (oldTarVal >= 2 && oldTarVal <= maxVal) {
+        tarSelect.value = oldTarVal;
+      } else {
+        tarSelect.value = maxVal; // デフォルトは最大値
+      }
     }
   }
 
-  // ページ読み込み時に一度実行して初期状態をセット
-  document.addEventListener('DOMContentLoaded', updateSkillLimits);
-
+  // ページ読み込み時に初期化
+  document.addEventListener('DOMContentLoaded', updateSkillOptions);
 
 // ==========================================
 // ロジック (Logic)
@@ -890,13 +959,13 @@ function calculateFavor() {
   document.getElementById("resFavorArea").style.display = "block";
 }
 
-  // スキルコスト計算 (専門家別・スキル別対応版)
+  // スキルコスト計算
   function calculateSkill() {
     let totalBook = 0;
     let totalXP = 0;
     let totalTime = 0;
 
-    // 1. 選択中の専門家データ(4つの配列のセット)を取得
+    // 選択中の専門家データを取得
     const charType = document.getElementById("charSelect").value;
     const currentSkillData = skillDataMap[charType];
 
@@ -904,20 +973,24 @@ function calculateFavor() {
       alert("データ読み込みエラー"); return;
     }
 
-    // 2. 4つのスキルをループ
+    // 4つのスキルをループ
     for (let i = 1; i <= 4; i++) {
+      // チェックボックスが無効ならスキップ
       const isActive = document.getElementById(`s${i}_active`).checked;
       if (!isActive) continue;
 
+      // 入力値(プルダウンの値)を取得
       let sStart = parseInt(document.getElementById(`s${i}_cur`).value);
       let sEnd = parseInt(document.getElementById(`s${i}_tar`).value);
 
-      if (sStart >= sEnd) continue;
+      // ★追加: ガードロジック (目標レベル <= 現在レベル の場合)
+      if (sEnd <= sStart) {
+        alert(`スキル${i}の設定エラー:\n目標レベルは現在レベルより高く設定してください。\n(現在: Lv${sStart} -> 目標: Lv${sEnd})`);
+        return; // 計算を中断
+      }
 
-      // ★ここで各スキルに対応したテーブルを取得 (i-1)
+      // コスト加算処理
       const skillTable = currentSkillData[i - 1];
-
-      // Lv上昇ごとのコストを加算
       for (let lv = sStart; lv < sEnd; lv++) {
         const cost = skillTable[lv];
         if (cost) {
@@ -928,18 +1001,13 @@ function calculateFavor() {
       }
     }
 
-    // (forループが終わった後の、時間の整形部分を修正)
-
     // 時間の整形 (h m / d h m)
     const totalHours = Math.floor(totalTime / 60);
     const mins = totalTime % 60;
     const days = Math.floor(totalHours / 24);
     const dayHours = totalHours % 24;
 
-    // 基本表示: "25h 30m"
     let timeStr = `${totalHours}h ${mins}m`;
-
-    // 24時間を超える場合は日数表記も追加: " (1d 1h 30m)"
     if (days > 0) {
       timeStr += ` (${days}d ${dayHours}h ${mins}m)`;
     }
@@ -947,11 +1015,12 @@ function calculateFavor() {
     // 結果の表示
     document.getElementById("resBook").innerText = totalBook.toLocaleString();
     document.getElementById("resXP").innerText = totalXP.toLocaleString();
-    document.getElementById("resTime").innerText = totalTime.toLocaleString(); // ここは「分」のまま
-    document.getElementById("resTimeFormatted").innerText = timeStr; // 整形した時間を下に表示
+    document.getElementById("resTime").innerText = totalTime.toLocaleString();
+    document.getElementById("resTimeFormatted").innerText = timeStr;
 
     document.getElementById("resSkillArea").style.display = "block";
   }
+
 </script>
 
 </body>
