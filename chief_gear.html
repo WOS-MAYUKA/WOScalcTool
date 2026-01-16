@@ -377,7 +377,7 @@ const EQUIP_DATA = [
     { name: "神話T3★2-3", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
 
     // =========================================================
-    // ここから 既存の5段階 (0-4) エリア
+    // ここから 5段階 (0-4) エリア
     // 神話T3★3 以降
     // =========================================================
 
@@ -487,7 +487,6 @@ function updateStageSelect(rankId, boxId, selectId, labelId) {
         // ラベル更新 (0-3 or 0-4)
         label.innerText = `段階 (0-${maxStage})`;
 
-        // 値を復元 (範囲外なら最大に丸める)
         if(currentVal <= maxStage) {
             select.value = currentVal;
         } else {
@@ -529,7 +528,7 @@ function calculateEquipCost() {
     // 3. コスト積算
     let baseCost = { alloy: 0, polish: 0, bp: 0, amber: 0 };
 
-    // 修正: 現在ランク(startIdx)を含めず、目標ランク(endIdx)を含むようにループ
+    // 現在ランク(startIdx)を含めず、目標ランク(endIdx)を含むようにループ
     for (let i = startIdx + 1; i <= endIdx; i++) {
         if (EQUIP_DATA[i]) {
             baseCost.alloy += EQUIP_DATA[i].alloy;
@@ -546,7 +545,7 @@ function calculateEquipCost() {
     const multipliers = [1, 2, 4, 6]; 
 
     multipliers.forEach(m => {
-        // 小数点を丸める（切り上げ）
+
         const totalAlloy = Math.ceil(baseCost.alloy * m).toLocaleString();
         const totalPolish = Math.ceil(baseCost.polish * m).toLocaleString();
         const totalBp = Math.ceil(baseCost.bp * m).toLocaleString();

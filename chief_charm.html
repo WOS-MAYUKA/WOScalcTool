@@ -7,7 +7,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
 
 <style>
-  /* --- 共通デザイン定義 (ペット計算機と同一) --- */
+  /* --- 共通デザイン定義 --- */
   :root {
     --bg-deep: #020617;
     --glass-surface: rgba(255, 255, 255, 0.03);
@@ -128,7 +128,7 @@
   }
   button.calc-btn:active { transform: scale(0.98); }
 
-  /* --- 結果表示エリア（宝石計算機用に拡張） --- */
+  /* --- 結果表示エリア --- */
   .result-container {
     margin-top: 40px; background-color: rgba(0,0,0,0.3);
     border-radius: 12px; padding: 25px;
@@ -139,7 +139,7 @@
   }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* 宝石計算機用のグルーピングスタイル */
+  /* グルーピングスタイル */
   .result-group {
     margin-bottom: 25px;
     padding-bottom: 10px;
@@ -169,7 +169,6 @@
   .result-row {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 10px; padding-bottom: 10px;
-    /* border-bottom削除：グループ内で詰めるため */
   }
 
   .result-label { 

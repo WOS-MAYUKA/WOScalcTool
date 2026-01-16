@@ -397,9 +397,11 @@
   </footer>
 
   <script>
+    
     // URLコピー機能
     function copyUrl() {
-      navigator.clipboard.writeText(window.location.href)
+      const urlToCopy = "https://wos-calc.com"; // コピーしたいURLを指定
+      navigator.clipboard.writeText(urlToCopy)
         .then(() => {
           alert("URLをコピーしました！\nDiscordやSNSに貼り付けてシェアしてください。");
         })
