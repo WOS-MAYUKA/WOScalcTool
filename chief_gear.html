@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>領主装備コスト計算機 | WOS Tools</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* --- 共通デザイン定義 --- */
+  :root {
+    --bg-deep: #020617;
+    --glass-surface: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --accent-ice: #22d3ee;
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+
+    /* アイテムカラー定義 */
+    --col-alloy: #94a3b8; /* 強靭な合金 (銀) */
+    --col-polish: #bef264; /* 研磨剤 (黄緑) */
+    --col-bp: #fbbf24; /* 設計図面 (金/茶) */
+    --col-amber: #f97316; /* 月光琥珀 (オレンジ) */
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+
+  .bg-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2;
+    background-image: url('image.png');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.6) contrast(1.1) blur(2px);
+  }
+  .bg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 90%);
+    pointer-events: none;
+  }
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj48Y2lyY2xlIGN4PSI1IiBjeT0iNSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+PC9zdmc+');
+    animation: snow 25s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 50px 500px; } }
+
+  .container {
+    position: relative; z-index: 1; width: 100%; max-width: 800px;
+    padding: 40px 20px; box-sizing: border-box;
+  }
+
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-sub); text-decoration: none;
+    margin-bottom: 30px; transition: 0.3s; font-size: 0.9rem;
+  }
+  .nav-back:hover { color: var(--accent-ice); transform: translateX(-5px); }
+
+  .calc-card {
+    background: var(--glass-surface);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  h2 {
+    text-align: center; font-size: 1.8rem; margin: 0 0 30px 0;
+    color: var(--text-main); letter-spacing: 0.1em;
+    text-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 20px;
+  }
+
+  label {
+    display: block; margin-top: 20px; margin-bottom: 8px;
+    font-weight: 700; font-size: 0.9rem; color: var(--accent-ice);
+    letter-spacing: 0.05em;
+  }
+
+  select, input {
+    width: 100%; padding: 14px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-main); font-size: 16px;
+    box-sizing: border-box; transition: 0.3s;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent-ice); outline: none;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  .row-inputs {
+    display: flex; gap: 15px;
+  }
+  .row-inputs > div { flex: 1; }
+
+  button.calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent-ice), #0ea5e9);
+    color: #fff; padding: 18px; border: none; border-radius: 50px;
+    font-size: 1.1rem; font-weight: bold; margin-top: 30px;
+    cursor: pointer; transition: 0.3s; letter-spacing: 0.1em;
+    box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+  }
+  button.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+  }
+  button.calc-btn:active { transform: scale(0.98); }
+
+  .result-container {
+    margin-top: 40px; background-color: rgba(0,0,0,0.3);
+    border-radius: 12px; padding: 25px;
+    border: 1px solid var(--accent-ice);
+    box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
+    animation: fadeIn 0.5s ease;
+    display: none;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-group {
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(255,255,255,0.2);
+  }
+  .result-group:last-child { margin-bottom: 0; border-bottom: none; }
+
+  .group-header {
+    font-size: 1.1rem; color: var(--accent-ice); margin-bottom: 15px;
+    font-weight: bold; display: flex; align-items: center; gap: 10px;
+  }
+  .group-header::before {
+    content: ''; display: inline-block; width: 4px; height: 16px;
+    background: var(--accent-ice); border-radius: 2px;
+  }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; padding-bottom: 5px;
+  }
+
+  .result-label { 
+    font-size: 0.95rem; color: var(--text-sub); 
+    display: flex; align-items: center; gap: 10px;
+  }
+  .result-value {
+    font-size: 1.2rem; font-weight: 800; color: var(--text-main);
+    font-family: "Helvetica Neue", sans-serif;
+  }
+
+  .icon-alloy { color: var(--col-alloy); }
+  .icon-polish { color: var(--col-polish); }
+  .icon-bp { color: var(--col-bp); }
+  .icon-amber { color: var(--col-amber); }
+
+  .hidden { display: none; }
+
+  footer {
+    margin-top: auto; padding: 40px; width: 100%; text-align: center;
+    color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+<div class="snow-container"></div>
+
+<div class="container">
+  <a href="index.html" class="nav-back"><i class="fas fa-chevron-left"></i> トップページに戻る</a>
+
+  <div class="calc-card">
+    <h2>領主装備コスト計算機</h2>
+
+    <div class="row-inputs">
+      <div>
+        <label>現在ランク</label>
+        <select id="currentRank" onchange="toggleStageInputs()">
+            </select>
+        <div id="currentStageBox" class="hidden" style="margin-top: 10px;">
+           <label id="curStageLabel" style="font-size:0.8rem; color:var(--text-sub);">段階</label>
+           <select id="currentStage">
+             </select>
+        </div>
+      </div>
+
+      <div>
+        <label>目標ランク</label>
+        <select id="targetRank" onchange="toggleStageInputs()">
+            </select>
+        <div id="targetStageBox" class="hidden" style="margin-top: 10px;">
+           <label id="tarStageLabel" style="font-size:0.8rem; color:var(--text-sub);">段階</label>
+           <select id="targetStage">
+             </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculateEquipCost()">必要素材を計算</button>
+
+    <div class="result-container" id="resultArea">
+        </div>
+
+  </div>
+</div>
+
+<footer>
+  &copy; 2026 WOS Tools Created by MAYUKA
+</footer>
+
+<script>
+// ==========================================
+// データ定義 (Data Definition)
+// ==========================================
+
+const EQUIP_DATA = [
+    // --- 未解放 (Unreleased) ---
+    // 計算ロジック上、開始点として必要
+    { name: "未解放", alloy: 0, polish: 0, bp: 0, amber: 0 },
+
+    // --- グッド (Good) ---
+    { name: "グッド", alloy: 1500, polish: 15, bp: 0, amber: 0 },
+    { name: "グッド★1", alloy: 3800, polish: 40, bp: 0, amber: 0 },
+
+    // --- レア (Rare) ---
+    { name: "レア", alloy: 7000, polish: 70, bp: 0, amber: 0 },
+    { name: "レア★1", alloy: 9700, polish: 95, bp: 0, amber: 0 },
+    { name: "レア★2", alloy: 0, polish: 0, bp: 45, amber: 0 },
+    { name: "レア★3", alloy: 0, polish: 0, bp: 50, amber: 0 },
+
+    // --- エピック (Epic) ---
+    { name: "エピック", alloy: 0, polish: 0, bp: 60, amber: 0 },
+    { name: "エピック★1", alloy: 0, polish: 0, bp: 70, amber: 0 },
+    { name: "エピック★2", alloy: 6500, polish: 65, bp: 40, amber: 0 },
+    { name: "エピック★3", alloy: 8000, polish: 80, bp: 50, amber: 0 },
+
+    // --- エピック T1 ---
+    { name: "エピックT1", alloy: 10000, polish: 95, bp: 60, amber: 0 },
+    { name: "エピックT1★1", alloy: 11000, polish: 110, bp: 70, amber: 0 },
+    { name: "エピックT1★2", alloy: 13000, polish: 130, bp: 85, amber: 0 },
+    { name: "エピックT1★3", alloy: 15000, polish: 160, bp: 100, amber: 0 },
+
+    // --- レジェンド (Legend) ---
+    { name: "レジェンド", alloy: 22000, polish: 220, bp: 40, amber: 0 },
+    { name: "レジェンド★1", alloy: 23000, polish: 230, bp: 40, amber: 0 },
+    { name: "レジェンド★2", alloy: 25000, polish: 250, bp: 45, amber: 0 },
+    { name: "レジェンド★3", alloy: 26000, polish: 260, bp: 45, amber: 0 },
+
+    // --- レジェンド T1 ---
+    { name: "レジェンドT1", alloy: 28000, polish: 280, bp: 45, amber: 0 },
+    { name: "レジェンドT1★1", alloy: 30000, polish: 300, bp: 55, amber: 0 },
+    { name: "レジェンドT1★2", alloy: 32000, polish: 320, bp: 55, amber: 0 },
+    { name: "レジェンドT1★3", alloy: 35000, polish: 340, bp: 55, amber: 0 },
+
+    // --- レジェンド T2 ---
+    { name: "レジェンドT2", alloy: 38000, polish: 390, bp: 55, amber: 0 },
+    { name: "レジェンドT2★1", alloy: 43000, polish: 430, bp: 75, amber: 0 },
+    { name: "レジェンドT2★2", alloy: 45000, polish: 460, bp: 80, amber: 0 },
+
+    // =========================================================
+    // ここから 4段階分割エリア
+    // =========================================================
+
+    // レジェンドT2★3 -> 次は 神話
+    { name: "レジェンドT2★3", alloy: 48000, polish: 500, bp: 85, amber: 0, hasStages: true, maxStage: 3 },
+    { name: "レジェンドT2★3-1", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true },
+    { name: "レジェンドT2★3-2", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true },
+    { name: "レジェンドT2★3-3", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true },
+
+    // 神話 -> 次は 神話★1
+    { name: "神話", alloy: 12500, polish: 134, bp: 22, amber: 4, hasStages: true, maxStage: 3 },
+    { name: "神話-1", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true },
+    { name: "神話-2", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true },
+    { name: "神話-3", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true },
+
+    // 神話★1 -> 次は 神話★2
+    { name: "神話★1", alloy: 13000, polish: 140, bp: 24, amber: 4, hasStages: true, maxStage: 3 },
+    { name: "神話★1-1", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true },
+    { name: "神話★1-2", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true },
+    { name: "神話★1-3", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true },
+
+    // 神話★2 -> 次は 神話★3
+    { name: "神話★2", alloy: 13500, polish: 149, bp: 26, amber: 4, hasStages: true, maxStage: 3 },
+    { name: "神話★2-1", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true },
+    { name: "神話★2-2", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true },
+    { name: "神話★2-3", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true },
+
+    // 神話★3 -> 次は 神話T1
+    { name: "神話★3", alloy: 14000, polish: 155, bp: 25, amber: 4, hasStages: true, maxStage: 3 },
+    { name: "神話★3-1", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true },
+    { name: "神話★3-2", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true },
+    { name: "神話★3-3", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true },
+
+    // 神話T1 -> 次は 神話T1★1
+    { name: "神話T1", alloy: 14750, polish: 169, bp: 29, amber: 6, hasStages: true, maxStage: 3 },
+    { name: "神話T1-1", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true },
+    { name: "神話T1-2", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true },
+    { name: "神話T1-3", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true },
+
+    // 神話T1★1 -> 次は 神話T1★2
+    { name: "神話T1★1", alloy: 15250, polish: 175, bp: 31, amber: 6, hasStages: true, maxStage: 3 },
+    { name: "神話T1★1-1", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true },
+    { name: "神話T1★1-2", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true },
+    { name: "神話T1★1-3", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true },
+
+    // 神話T1★2 -> 次は 神話T1★3
+    { name: "神話T1★2", alloy: 15750, polish: 184, bp: 30, amber: 6, hasStages: true, maxStage: 3 },
+    { name: "神話T1★2-1", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true },
+    { name: "神話T1★2-2", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true },
+    { name: "神話T1★2-3", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true },
+
+    // 神話T1★3 -> 次は 神話T2
+    { name: "神話T1★3", alloy: 16250, polish: 190, bp: 32, amber: 6, hasStages: true, maxStage: 3 },
+    { name: "神話T1★3-1", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true },
+    { name: "神話T1★3-2", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true },
+    { name: "神話T1★3-3", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true },
+
+    // 神話T2 -> 次は 神話T2★1
+    { name: "神話T2", alloy: 17000, polish: 204, bp: 36, amber: 5, hasStages: true, maxStage: 3 },
+    { name: "神話T2-1", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true },
+    { name: "神話T2-2", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true },
+    { name: "神話T2-3", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true },
+
+    // 神話T2★1 -> 次は 神話T2★2
+    { name: "神話T2★1", alloy: 17500, polish: 210, bp: 35, amber: 5, hasStages: true, maxStage: 3 },
+    { name: "神話T2★1-1", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true },
+    { name: "神話T2★1-2", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true },
+    { name: "神話T2★1-3", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true },
+
+    // 神話T2★2 -> 次は 神話T2★3
+    { name: "神話T2★2", alloy: 18000, polish: 219, bp: 37, amber: 5, hasStages: true, maxStage: 3 },
+    { name: "神話T2★2-1", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true },
+    { name: "神話T2★2-2", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true },
+    { name: "神話T2★2-3", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true },
+
+    // 神話T2★3 -> 次は 神話T3
+    { name: "神話T2★3", alloy: 18500, polish: 225, bp: 39, amber: 5, hasStages: true, maxStage: 3 },
+    { name: "神話T2★3-1", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true },
+    { name: "神話T2★3-2", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true },
+    { name: "神話T2★3-3", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true },
+
+    // 神話T3 -> 次は 神話T3★1
+    { name: "神話T3", alloy: 19250, polish: 239, bp: 40, amber: 7, hasStages: true, maxStage: 3 },
+    { name: "神話T3-1", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true },
+    { name: "神話T3-2", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true },
+    { name: "神話T3-3", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true },
+
+    // 神話T3★1 -> 次は 神話T3★2
+    { name: "神話T3★1", alloy: 20000, polish: 249, bp: 42, amber: 7, hasStages: true, maxStage: 3 },
+    { name: "神話T3★1-1", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true },
+    { name: "神話T3★1-2", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true },
+    { name: "神話T3★1-3", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true },
+
+    // 神話T3★2 -> 次は 神話T3★3
+    { name: "神話T3★2", alloy: 20750, polish: 259, bp: 44, amber: 7, hasStages: true, maxStage: 3 },
+    { name: "神話T3★2-1", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
+    { name: "神話T3★2-2", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
+    { name: "神話T3★2-3", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
+
+    // =========================================================
+    // ここから 既存の5段階 (0-4) エリア
+    // 神話T3★3 以降
+    // =========================================================
+
+    // 神話T3★3 (Base)
+    { name: "神話T3★3", alloy: 21500, polish: 269, bp: 45, amber: 7, hasStages: true, maxStage: 4 },
+    { name: "T3★3-1", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
+    { name: "T3★3-2", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
+    { name: "T3★3-3", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
+    { name: "T3★3-4", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
+
+    // 神話T4
+    { name: "神話T4", alloy: 24000, polish: 300, bp: 50, amber: 8, hasStages: true, maxStage: 4 },
+    { name: "T4-1", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
+    { name: "T4-2", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
+    { name: "T4-3", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
+    { name: "T4-4", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
+
+    // 神話T4★1
+    { name: "神話T4★1", alloy: 28000, polish: 330, bp: 55, amber: 8, hasStages: true, maxStage: 4 },
+    { name: "T4★1-1", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
+    { name: "T4★1-2", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
+    { name: "T4★1-3", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
+    { name: "T4★1-4", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
+
+    // 神話T4★2
+    { name: "神話T4★2", alloy: 32000, polish: 360, bp: 60, amber: 8, hasStages: true, maxStage: 4 },
+    { name: "T4★2-1", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
+    { name: "T4★2-2", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
+    { name: "T4★2-3", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
+    { name: "T4★2-4", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
+
+    // 神話T4★3 (最終到達点)
+    { name: "神話T4★3", alloy: 36000, polish: 390, bp: 65, amber: 8, hasStages: false }
+];
+
+// 初期化
+document.addEventListener('DOMContentLoaded', () => {
+    const currSel = document.getElementById('currentRank');
+    const targSel = document.getElementById('targetRank');
+
+    // 範囲制限用インデックス
+    const minTargetIdx = 1; // グッド (idx 1)
+    const maxCurrentName = "神話T4★2";
+    let maxCurrentIdx = -1;
+
+    // データスキャンしてインデックス特定
+    EQUIP_DATA.forEach((item, index) => {
+        if (item.name === maxCurrentName) maxCurrentIdx = index;
+    });
+
+    // プルダウン生成
+    EQUIP_DATA.forEach((item, index) => {
+        // 内部ステージデータはスキップ
+        if (item.isStage) return;
+
+        // 現在ランク: 未解放(idx 0) 〜 神話T4★2
+        if (index <= maxCurrentIdx) {
+            let op1 = document.createElement('option');
+            op1.value = index;
+            op1.text = item.name;
+            currSel.appendChild(op1);
+        }
+
+        // 目標ランク: グッド(idx 1) から
+        if (index >= minTargetIdx) {
+            let op2 = document.createElement('option');
+            op2.value = index;
+            op2.text = item.name;
+            targSel.appendChild(op2);
+        }
+    });
+
+    // 初期値設定
+    targSel.selectedIndex = targSel.options.length - 1; 
+    toggleStageInputs();
+});
+
+// 段階入力エリアの表示切替
+function toggleStageInputs() {
+    updateStageSelect('currentRank', 'currentStageBox', 'currentStage', 'curStageLabel');
+    updateStageSelect('targetRank', 'targetStageBox', 'targetStage', 'tarStageLabel');
+}
+
+function updateStageSelect(rankId, boxId, selectId, labelId) {
+    const rankIdx = parseInt(document.getElementById(rankId).value);
+    const box = document.getElementById(boxId);
+    const select = document.getElementById(selectId);
+    const label = document.getElementById(labelId);
+
+    if (EQUIP_DATA[rankIdx] && EQUIP_DATA[rankIdx].hasStages) {
+        box.classList.remove('hidden');
+
+        // maxStage (3 or 4) に応じてプルダウンを再生成
+        const maxStage = EQUIP_DATA[rankIdx].maxStage;
+        const currentVal = parseInt(select.value) || 0; // 現在の値を保持
+
+        select.innerHTML = '';
+
+        // 0〜maxStage まで生成
+        for(let i=0; i<=maxStage; i++) {
+            let op = document.createElement('option');
+            op.value = i;
+            op.text = i + (i === 0 ? " (初期)" : "") + (i === maxStage ? " (最大)" : "");
+            select.appendChild(op);
+        }
+
+        // ラベル更新 (0-3 or 0-4)
+        label.innerText = `段階 (0-${maxStage})`;
+
+        // 値を復元 (範囲外なら最大に丸める)
+        if(currentVal <= maxStage) {
+            select.value = currentVal;
+        } else {
+            select.value = maxStage;
+        }
+
+    } else {
+        box.classList.add('hidden');
+        select.value = 0;
+    }
+}
+
+// 計算実行
+function calculateEquipCost() {
+    // 1. 開始インデックス
+    const curRankIdx = parseInt(document.getElementById('currentRank').value);
+    let startIdx = curRankIdx;
+
+    if (EQUIP_DATA[curRankIdx].hasStages) {
+        const stageVal = parseInt(document.getElementById('currentStage').value);
+        startIdx += stageVal;
+    }
+
+    // 2. 終了インデックス
+    const tarRankIdx = parseInt(document.getElementById('targetRank').value);
+    let endIdx = tarRankIdx;
+
+    if (EQUIP_DATA[tarRankIdx].hasStages) {
+        const stageVal = parseInt(document.getElementById('targetStage').value);
+        endIdx += stageVal;
+    }
+
+    // エラーチェック
+    if (startIdx >= endIdx) {
+        alert("目標ランクは現在ランクより高く設定してください");
+        return;
+    }
+
+    // 3. コスト積算
+    let baseCost = { alloy: 0, polish: 0, bp: 0, amber: 0 };
+
+    // 修正: 現在ランク(startIdx)を含めず、目標ランク(endIdx)を含むようにループ
+    for (let i = startIdx + 1; i <= endIdx; i++) {
+        if (EQUIP_DATA[i]) {
+            baseCost.alloy += EQUIP_DATA[i].alloy;
+            baseCost.polish += EQUIP_DATA[i].polish;
+            baseCost.bp += EQUIP_DATA[i].bp;
+            baseCost.amber += EQUIP_DATA[i].amber;
+        }
+    }
+
+    // 4. 結果表示
+    const resultArea = document.getElementById('resultArea');
+    resultArea.innerHTML = '';
+
+    const multipliers = [1, 2, 4, 6]; 
+
+    multipliers.forEach(m => {
+        // 小数点を丸める（切り上げ）
+        const totalAlloy = Math.ceil(baseCost.alloy * m).toLocaleString();
+        const totalPolish = Math.ceil(baseCost.polish * m).toLocaleString();
+        const totalBp = Math.ceil(baseCost.bp * m).toLocaleString();
+        const totalAmber = Math.ceil(baseCost.amber * m).toLocaleString();
+
+        const showAmber = (baseCost.amber * m) > 0;
+
+        let html = `
+            <div class="result-group">
+                <div class="group-header">${m}部位分</div>
+
+                <div class="result-row">
+                    <span class="result-label">
+                        <i class="fas fa-layer-group icon-alloy"></i> 強靭な合金
+                    </span>
+                    <span class="result-value">${totalAlloy}</span>
+                </div>
+
+                <div class="result-row">
+                    <span class="result-label">
+                        <i class="fas fa-flask icon-polish"></i> 研磨剤
+                    </span>
+                    <span class="result-value">${totalPolish}</span>
+                </div>
+
+                <div class="result-row">
+                    <span class="result-label">
+                        <i class="fas fa-scroll icon-bp"></i> 設計図面
+                    </span>
+                    <span class="result-value">${totalBp}</span>
+                </div>
+        `;
+
+        if (showAmber) {
+            html += `
+                <div class="result-row">
+                    <span class="result-label">
+                        <i class="fas fa-gem icon-amber"></i> 月光琥珀
+                    </span>
+                    <span class="result-value">${totalAmber}</span>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+        resultArea.insertAdjacentHTML('beforeend', html);
+    });
+
+    resultArea.style.display = 'block';
+}
+</script>
+
+</body>
+</html>
