@@ -189,28 +189,28 @@
     <label>ペットを選択</label>
     <select id="petSelect" onchange="updateMaxLevel()">
 
-      <optgroup label="C - Max Lv50" style="color:var(--rank-c);">
+        <optgroup label="C" style="color:var(--rank-c);">
         <option value="uc" data-max="50">洞窟ハイエナ</option>
       </optgroup>
 
 
-      <optgroup label="N - Max Lv60" style="color:var(--rank-n);">
+      <optgroup label="N" style="color:var(--rank-n);">
         <option value="n" data-max="60">北極オオカミ</option>
         <option value="n" data-max="60">ジャコウウシ</option>
       </optgroup>
 
-      <optgroup label="R - Max Lv70" style="color:var(--rank-r);">
+      <optgroup label="R" style="color:var(--rank-r);">
         <option value="r" data-max="70">巨鳥タイタン</option>
         <option value="r" data-max="70">ジャイアントバク</option>
       </optgroup>
 
-      <optgroup label="SR - Max Lv80" style="color:var(--rank-sr);">
+      <optgroup label="SR" style="color:var(--rank-sr);">
         <option value="sr" data-max="80">オオツノジカ</option>
         <option value="sr" data-max="80">ユキヒョウ</option>
       </optgroup>
 
 
-      <optgroup label="SSR - Max Lv100" style="color:var(--rank-ssr);">
+      <optgroup label="SSR" style="color:var(--rank-ssr);">
         <option value="ssr" data-max="100">ホラアナライオン</option>
         <option value="ssr" data-max="100">雪猿</option>
         <option value="ssr" data-max="100">エラスモテリウム</option>
@@ -224,11 +224,11 @@
     <div class="level-inputs">
       <div>
         <label>現在レベル</label>
-        <input type="number" id="currentLv" value="1" min="1" max="100">
+        <select id="currentLv"></select>
       </div>
       <div>
         <label>目標レベル</label>
-        <input type="number" id="targetLv" value="100" min="2" max="100">
+        <select id="targetLv"></select>
       </div>
     </div>
 
@@ -398,19 +398,55 @@ const materialData = {
 // ロジック (Logic)
 // ==========================================
 
-// ペット選択時に最大レベルを更新
-function updateMaxLevel() {
-  const select = document.getElementById("petSelect");
-  const selectedOption = select.options[select.selectedIndex];
-  const maxLv = parseInt(selectedOption.getAttribute("data-max"));
+  // ペット選択時にプルダウンの選択肢を更新
+  function updateMaxLevel() {
+    const select = document.getElementById("petSelect");
+    const selectedOption = select.options[select.selectedIndex];
+    const maxLv = parseInt(selectedOption.getAttribute("data-max")); // ランクごとの最大Lv
 
-  const curInput = document.getElementById("currentLv");
-  const tarInput = document.getElementById("targetLv");
+    const curSelect = document.getElementById("currentLv");
+    const tarSelect = document.getElementById("targetLv");
 
-  curInput.max = maxLv;
-  tarInput.max = maxLv;
-  tarInput.value = maxLv; // 目標を最大値にリセット
-}
+    // 現在の選択値を保持（可能なら）
+    const oldCur = parseInt(curSelect.value) || 1;
+    const oldTar = parseInt(tarSelect.value) || maxLv;
+
+    // リセット
+    curSelect.innerHTML = "";
+    tarSelect.innerHTML = "";
+
+    // --- 現在レベル (1 〜 Max-1) ---
+    // 例: Max60なら 1〜59
+    for (let i = 1; i < maxLv; i++) {
+      const op = document.createElement("option");
+      op.value = i;
+      op.text = i;
+      curSelect.appendChild(op);
+    }
+
+    // 値の復元（範囲内なら維持、範囲外なら1）
+    if (oldCur >= 1 && oldCur < maxLv) {
+      curSelect.value = oldCur;
+    } else {
+      curSelect.value = 1;
+    }
+
+    // --- 目標レベル (2 〜 Max) ---
+    // 例: Max60なら 2〜60
+    for (let i = 2; i <= maxLv; i++) {
+      const op = document.createElement("option");
+      op.value = i;
+      op.text = i;
+      tarSelect.appendChild(op);
+    }
+
+    // 値の復元（範囲内なら維持、範囲外なら最大値）
+    if (oldTar >= 2 && oldTar <= maxLv) {
+      tarSelect.value = oldTar;
+    } else {
+      tarSelect.value = maxLv;
+    }
+  }
 
 // コスト計算
 function calculatePetCost() {

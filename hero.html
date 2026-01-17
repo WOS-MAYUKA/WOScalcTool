@@ -224,7 +224,7 @@
     <div class="status-row">
       <div class="status-group">
         <label style="margin-top:0; font-size:0.8rem;">星 (Star)</label>
-        <select id="tarStar">
+        <select id="tarStar" onchange="toggleTargetTier()">
           <option value="0">0</option>
           <option value="1">1</option>
           <option value="2">2</option>
@@ -233,7 +233,7 @@
           <option value="5" selected>5 (MAX)</option>
         </select>
       </div>
-      <div class="status-group">
+      <div class="status-group" id="tarTierGroup">
         <label style="margin-top:0; font-size:0.8rem;">段階 (Tier)</label>
         <select id="tarTier">
           <option value="0" selected>0</option>
@@ -271,7 +271,6 @@
 
 // 全ランク共通コスト (SSR/SR/R)
 // [Tier1, Tier2, Tier3, Tier4, Tier5, Tier6]
-// ※ Tier6のコストで次の星へ昇格する
 const commonCost = [
   [1, 1, 2, 2, 2, 2],       // 星0
   [5, 5, 5, 5, 5, 15],      // 星1
@@ -290,16 +289,31 @@ function updateRankColor() {
   const icon = document.getElementById("resPieceIcon");
   const val = select.value;
 
-  // セレクトボックスの文字色変更
   if(val === "ssr") select.style.color = "var(--rank-ssr)";
   else if(val === "sr") select.style.color = "var(--rank-sr)";
   else select.style.color = "var(--rank-r)";
 
-  // 結果欄のアイコン色変更
   icon.classList.remove("piece-ssr", "piece-sr", "piece-r");
   if(val === "ssr") icon.classList.add("piece-ssr");
   else if(val === "sr") icon.classList.add("piece-sr");
   else icon.classList.add("piece-r");
+}
+
+// 追加: 目標星が5の時にTier入力を非表示にする
+function toggleTargetTier() {
+  const starVal = document.getElementById("tarStar").value;
+  // 親のstatus-groupごと非表示にするため要素を取得
+  const tierSelect = document.getElementById("tarTier");
+  const tierGroup = tierSelect.parentElement; // div.status-group
+
+  if (starVal === "5") {
+    // 星5なら非表示 & 値を0にリセット
+    tierGroup.style.display = "none";
+    tierSelect.value = "0";
+  } else {
+    // それ以外なら表示
+    tierGroup.style.display = "block";
+  }
 }
 
 function calculateHeroCost() {
@@ -308,54 +322,33 @@ function calculateHeroCost() {
   const tarStar = parseInt(document.getElementById("tarStar").value);
   const tarTier = parseInt(document.getElementById("tarTier").value);
 
-  // 全ランク共通データを使用
   const costTable = commonCost;
-
   let totalShards = 0;
-
-  // 計算用の一時変数
   let s = curStar;
   let t = curTier;
-
-  // 安全装置
   let loopCount = 0;
   const maxLoops = 1000; 
 
   while (loopCount < maxLoops) {
     loopCount++;
 
-    // 目標に到達したら終了
-    // (星が目標より大きい、または、星が同じでTierが目標以上)
     if (s > tarStar || (s === tarStar && t >= tarTier)) {
       break;
     }
-
-    // 星5(MAX)に到達したら終了
-    // (テーブルには星4->5までのデータしかないのでs=5になったら終わり)
     if (s >= 5) {
         break; 
     }
-
-    // Tier 6 (MAX) の場合、次の星へランクアップ
-    // コストはTier 5->6で支払い済みなので、ここではコスト加算せず状態だけ更新
     if (t === 6) {
       s++;
       t = 0;
       continue; 
     }
-
-    // コスト加算
     if (s < costTable.length) {
-      // costTable[s][t] は、Tier t -> t+1 にするコスト
-      // Tier 5の場合、index 5 (Tier6へのコスト) が加算され、次は t=6 になる
       totalShards += costTable[s][t];
     }
-
-    // Tierを進める
     t++;
   }
 
-  // 入力チェック（逆転時など）
   if (totalShards === 0 && (curStar > tarStar || (curStar === tarStar && curTier > tarTier))) {
     alert("目標は現在より高い状態に設定してください");
     return;
@@ -366,7 +359,10 @@ function calculateHeroCost() {
 }
 
 // 初期化
-document.addEventListener('DOMContentLoaded', updateRankColor);
+document.addEventListener('DOMContentLoaded', () => {
+  updateRankColor();
+  toggleTargetTier(); // 初回ロード時にもチェック実行
+});
 
 </script>
 

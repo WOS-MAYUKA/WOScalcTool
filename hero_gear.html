@@ -18,12 +18,12 @@
     --text-sub: #94a3b8;
 
     /* レアリティカラー */
-    --color-mythic: #ef4444; /* 神話(赤) */
-    --color-legend: #f97316; /* レジェンド(橙) */
-    --color-epic: #a855f7;   /* エピック(紫) */
-    --color-rare: #3b82f6;   /* レア(青) */
-    --color-good: #22c55e;   /* グッド(緑) */
-    --color-normal: #94a3b8; /* ノーマル(灰) */
+    --color-mythic: #ef4444;
+    --color-legend: #f97316;
+    --color-epic: #a855f7;
+    --color-rare: #3b82f6;
+    --color-good: #22c55e;
+    --color-normal: #94a3b8;
   }
 
   html { scroll-behavior: smooth; }
@@ -42,7 +42,7 @@
   .bg-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: -2;
-    background-image: url('image.png'); /* トップページと同じ画像 */
+    background-image: url('image.png');
     background-size: cover;
     background-position: center;
     filter: brightness(0.6) contrast(1.1) blur(2px);
@@ -193,23 +193,23 @@
       <i class="fas fa-caret-right"></i> 現在の状態
     </div>
     <label>レアリティ</label>
-    <select id="curRarity" onchange="updateInputs('cur')">
-      <option value="normal" style="color:var(--color-normal);">ノーマル (最大Lv20)</option>
-      <option value="good" style="color:var(--color-good);">グッド (最大Lv40)</option>
-      <option value="rare" style="color:var(--color-rare);">レア (最大Lv60)</option>
-      <option value="epic" style="color:var(--color-epic);">エピック (最大Lv80)</option>
-      <option value="legend" style="color:var(--color-legend);">レジェンド (最大Lv100)</option>
-      <option value="mythic" style="color:var(--color-mythic);">神話 (最大Lv100)</option>
+    <select id="curRarity" onchange="updateUI()">
+      <option value="normal" style="color:var(--color-normal);">ノーマル</option>
+      <option value="good" style="color:var(--color-good);">グッド</option>
+      <option value="rare" style="color:var(--color-rare);">レア</option>
+      <option value="epic" style="color:var(--color-epic);">エピック</option>
+      <option value="legend" style="color:var(--color-legend);">レジェンド</option>
+      <option value="mythic" style="color:var(--color-mythic);">神話</option>
     </select>
 
     <div class="input-row">
       <div class="input-group">
         <label>装備レベル</label>
-        <input type="number" id="curLv" value="0" min="0" max="100" oninput="checkMax(this)" onblur="checkMin(this)">
+        <select id="curLv" onchange="updateVisibility()"></select>
       </div>
       <div class="input-group" id="curMasteryGroup" style="display:none;">
         <label>精錬レベル</label>
-        <input type="number" id="curMastery" value="0" min="0" max="20" oninput="checkMax(this)" onblur="checkMin(this)">
+        <select id="curMastery" onchange="updateVisibility()"></select>
       </div>
     </div>
 
@@ -219,47 +219,42 @@
 
     <div id="tarRarityArea" style="display:none;">
       <label>レアリティ</label>
-      <select id="tarRarity" onchange="updateInputs('tar')">
+      <select id="tarRarity" onchange="updateUI()">
         <option value="legend" style="color:var(--color-legend);">レジェンド</option>
         <option value="mythic" style="color:var(--color-mythic);">神話</option>
       </select>
     </div>
 
-    <div class="input-row">
-      <div class="input-group">
-        <label>目標レベル</label>
-        <input type="number" id="tarLv" value="100" min="1" max="100" oninput="checkMax(this)" onblur="checkMin(this)">
+    <div class="input-row" id="targetInputRow">
+      <div class="input-group" id="tarLvGroup">
+        <label>装備レベル</label>
+        <select id="tarLv"></select>
       </div>
       <div class="input-group" id="tarMasteryGroup" style="display:none;">
         <label>精錬レベル</label>
-        <input type="number" id="tarMastery" value="0" min="0" max="20" oninput="checkMax(this)" onblur="checkMin(this)">
+        <select id="tarMastery"></select>
       </div>
     </div>
 
     <button class="calc-btn" onclick="calculateGearCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea" style="display:none;">
-
       <div class="result-row">
         <span class="result-label"><i class="fas fa-cog icon-xp"></i> 強化経験値 (XP)</span>
         <span class="result-value" id="resXP">0</span>
       </div>
-
       <div class="result-row" id="rowMythril">
         <span class="result-label"><i class="fas fa-gem icon-mythril"></i> ミスリル</span>
         <span class="result-value" id="resMythril">0</span>
       </div>
-
       <div class="result-row" id="rowWidget">
         <span class="result-label"><i class="fas fa-shield-halved icon-widget"></i> レジェンド装備</span>
         <span class="result-value" id="resWidget">0</span>
       </div>
-
       <div class="result-row" id="rowStone">
         <span class="result-label"><i class="fas fa-cube icon-stone"></i> 精錬エナジー源石</span>
         <span class="result-value" id="resStone">0</span>
       </div>
-
     </div>
   </div>
 </div>
@@ -270,35 +265,31 @@
 
 <script>
 // ==========================================
-// データ定義 (Data Definition)
+// データ定義
 // ==========================================
 
-// 1. 通常装備(ノーマル〜レジェンド) XPコスト
 const xpStandard = [
-  10, 15, 20, 25, 30, 35, 40, 45, 50, 55, // 0-9
-  60, 65, 70, 75, 80, 85, 90, 95, 100, 105, // 10-19
-  110, 115, 120, 125, 130, 135, 140, 145, 150, 160, // 20-29
-  170, 180, 190, 200, 210, 220, 230, 240, 250, 270, // 30-39
-  290, 310, 330, 350, 370, 390, 410, 430, 450, 470, // 40-49
-  490, 510, 530, 550, 570, 590, 610, 630, 650, 680, // 50-59
-  710, 740, 770, 800, 830, 860, 890, 920, 950, 990, // 60-69
-  1030, 1070, 1110, 1150, 1190, 1230, 1270, 1310, 1350, 1400, // 70-79
-  1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, // 80-89
-  1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400 // 90-99
+  10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 
+  60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 
+  110, 115, 120, 125, 130, 135, 140, 145, 150, 160, 
+  170, 180, 190, 200, 210, 220, 230, 240, 250, 270, 
+  290, 310, 330, 350, 370, 390, 410, 430, 450, 470, 
+  490, 510, 530, 550, 570, 590, 610, 630, 650, 680, 
+  710, 740, 770, 800, 830, 860, 890, 920, 950, 990, 
+  1030, 1070, 1110, 1150, 1190, 1230, 1270, 1310, 1350, 1400, 
+  1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 
+  1950, 2000, 2050, 2100, 2150, 2200, 2250, 2300, 2350, 2400 
 ];
 
-// 2. 精錬(Mastery)コスト
 const masteryCost = [
-  { s:10, w:0 }, { s:20, w:0 }, { s:30, w:0 }, { s:40, w:0 }, { s:50, w:0 }, // 0->5
-  { s:60, w:0 }, { s:70, w:0 }, { s:80, w:0 }, { s:90, w:0 }, { s:100, w:0 }, // 5->10
-  { s:110, w:1 }, { s:120, w:2 }, { s:130, w:3 }, { s:140, w:4 }, { s:150, w:5 }, // 10->15
-  { s:160, w:6 }, { s:170, w:7 }, { s:180, w:8 }, { s:190, w:9 }, { s:200, w:10 } // 15->20
+  { s:10, w:0 }, { s:20, w:0 }, { s:30, w:0 }, { s:40, w:0 }, { s:50, w:0 }, 
+  { s:60, w:0 }, { s:70, w:0 }, { s:80, w:0 }, { s:90, w:0 }, { s:100, w:0 }, 
+  { s:110, w:1 }, { s:120, w:2 }, { s:130, w:3 }, { s:140, w:4 }, { s:150, w:5 }, 
+  { s:160, w:6 }, { s:170, w:7 }, { s:180, w:8 }, { s:190, w:9 }, { s:200, w:10 } 
 ];
 
-// 3. 神話装備レベルアップコスト
 function getMythicLevelCost(currentLv) {
   if (currentLv === 0) return { xp: 0, mythril: 2, widget: 0 };
-
   if (currentLv === 19) return { xp: 0, mythril: 10, widget: 3 };
   if (currentLv === 39) return { xp: 0, mythril: 20, widget: 5 };
   if (currentLv === 59) return { xp: 0, mythril: 30, widget: 5 };
@@ -314,7 +305,6 @@ function getMythicLevelCost(currentLv) {
   return { xp: 0, mythril: 0, widget: 0 };
 }
 
-// レアリティごとの最大レベル
 const maxLevels = {
   "normal": 20, "good": 40, "rare": 60, 
   "epic": 80, "legend": 100, "mythic": 100
@@ -324,93 +314,113 @@ const maxLevels = {
 // UI制御
 // ==========================================
 
-// 入力中は最大値のみチェック (タイピング阻害防止)
-function checkMax(input) {
-  if (input.value === "") return;
-  const val = parseInt(input.value);
-  const max = parseInt(input.max);
-  if (val > max) input.value = max;
+function populateSelect(selectId, min, max, defaultVal = null) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const currentVal = parseInt(select.value);
+  select.innerHTML = "";
+
+  if (min > max) return;
+
+  for (let i = min; i <= max; i++) {
+    const option = document.createElement("option");
+    option.value = i;
+    option.text = i;
+    select.appendChild(option);
+  }
+
+  if (!isNaN(currentVal) && currentVal >= min && currentVal <= max) {
+    select.value = currentVal;
+  } else if (defaultVal !== null && defaultVal >= min && defaultVal <= max) {
+    select.value = defaultVal;
+  } else {
+    select.value = min;
+  }
 }
 
-// フォーカスが外れた時に最小値をチェック
-function checkMin(input) {
-  if (input.value === "") return;
-  const val = parseInt(input.value);
-  const min = parseInt(input.min);
-  if (val < min) input.value = min;
-}
-
-function updateInputs(prefix) {
+function updateUI() {
   const curRarity = document.getElementById("curRarity").value;
-  // 目標レアリティの決定
-  let effectiveRarity = curRarity;
+  let tarRarity = curRarity;
 
-  if (prefix === "tar") {
-    if (curRarity === "mythic") effectiveRarity = "mythic";
-    else if (curRarity === "legend") effectiveRarity = document.getElementById("tarRarity").value;
-    else effectiveRarity = curRarity;
+  if (curRarity === "legend") {
+    document.getElementById("tarRarityArea").style.display = "block";
+    tarRarity = document.getElementById("tarRarity").value;
+  } else if (curRarity === "mythic") {
+    document.getElementById("tarRarityArea").style.display = "none";
+    tarRarity = "mythic";
   } else {
-    // curの場合はそれ自身の値
-    effectiveRarity = curRarity;
+    document.getElementById("tarRarityArea").style.display = "none";
+    tarRarity = curRarity;
   }
 
-  const maxLv = maxLevels[effectiveRarity];
-  const lvInput = document.getElementById(prefix + "Lv");
-  const masteryGroup = document.getElementById(prefix + "MasteryGroup");
-  const masteryInput = document.getElementById(prefix + "Mastery");
+  let curMaxLv = maxLevels[curRarity] - 1; 
+  if (curRarity === "legend" || curRarity === "mythic") curMaxLv = 100;
 
-  // レベル上限更新
-  lvInput.max = maxLv;
-
-  // 目標('tar')の場合、レアリティ変更時に「最大レベル」をデフォルトセット
-  if (prefix === "tar") {
-    lvInput.value = maxLv;
+  if (curRarity === "mythic") {
+    populateSelect("curLv", 1, 100); 
+    populateSelect("curMastery", 10, 20);
+  } else if (curRarity === "legend") {
+    populateSelect("curLv", 0, 100);
+    populateSelect("curMastery", 0, 20);
   } else {
-    if (parseInt(lvInput.value) > maxLv) lvInput.value = maxLv;
+    populateSelect("curLv", 0, curMaxLv);
   }
 
-  // --- 神話の場合の最小値制約 ---
-  if (effectiveRarity === "mythic") {
-    // 神話: 装備Lv最小1, 精錬Lv最小10
-    lvInput.min = 1;
-    masteryInput.min = 10;
+  if (tarRarity === "mythic") {
+    populateSelect("tarLv", 1, 100, 100);
+    populateSelect("tarMastery", 10, 20);
+  } else if (tarRarity === "legend") {
+    populateSelect("tarLv", 0, 100, 100);
+    populateSelect("tarMastery", 0, 20);
+  } else {
+    populateSelect("tarLv", 1, maxLevels[curRarity], maxLevels[curRarity]);
+  }
 
-    // 現在値が最小未満なら補正
-    // 現在('cur')の場合は、自動補正を入れておく
-    if (prefix === "cur") {
-        if (parseInt(lvInput.value) < 1) lvInput.value = 1;
-        if (parseInt(masteryInput.value) < 10) masteryInput.value = 10;
+  if (curRarity === "legend" || curRarity === "mythic") {
+    document.getElementById("curMasteryGroup").style.display = "block";
+  } else {
+    document.getElementById("curMasteryGroup").style.display = "none";
+  }
+
+  if (tarRarity === "legend" || tarRarity === "mythic") {
+    document.getElementById("tarMasteryGroup").style.display = "block";
+  } else {
+    document.getElementById("tarMasteryGroup").style.display = "none";
+  }
+
+  updateVisibility();
+}
+
+function updateVisibility() {
+  const curRarity = document.getElementById("curRarity").value;
+  const curLv = parseInt(document.getElementById("curLv").value) || 0;
+  const curMastery = parseInt(document.getElementById("curMastery").value) || 0;
+
+  let tarRarity = curRarity;
+  if (curRarity === "legend") tarRarity = document.getElementById("tarRarity").value;
+  if (curRarity === "mythic") tarRarity = "mythic";
+
+  const tarLvGroup = document.getElementById("tarLvGroup");
+  const tarMasteryGroup = document.getElementById("tarMasteryGroup");
+
+  tarLvGroup.style.display = "block";
+  if (tarRarity === "legend" || tarRarity === "mythic") {
+    tarMasteryGroup.style.display = "block";
+  }
+
+  if (tarRarity === "legend") {
+    if (curLv >= 100) tarLvGroup.style.display = "none";
+    if (curMastery >= 20) tarMasteryGroup.style.display = "none";
+  }
+
+  if (tarRarity === "mythic") {
+    if (curRarity === "mythic" && curLv >= 100) {
+      tarLvGroup.style.display = "none";
     }
-    // 目標('tar')の場合は、変更直後なので自動補正しても良いが、入力中はcheckMinに任せる
-
-  } else {
-    // 神話以外: 最小0
-    lvInput.min = 0;
-    masteryInput.min = 0;
-  }
-
-  // --- 表示制御 ---
-  // 目標レアリティ選択エリアの表示 (現在がレジェンドの場合のみ)
-  if (prefix === "cur") {
-    const tarRarityArea = document.getElementById("tarRarityArea");
-    if (curRarity === "legend") {
-      tarRarityArea.style.display = "block";
-    } else {
-      tarRarityArea.style.display = "none";
-      // 目標のレアリティ値を強制同期
-      if (curRarity !== "mythic") document.getElementById("tarRarity").value = curRarity;
-
-      // 目標側の入力制限も更新するために呼び出し
-      updateInputs('tar');
+    if (curMastery >= 20) {
+      tarMasteryGroup.style.display = "none";
     }
-  }
-
-  // 精錬レベル入力欄の表示 (レジェンド・神話のみ)
-  if (effectiveRarity === "legend" || effectiveRarity === "mythic") {
-    masteryGroup.style.display = "block";
-  } else {
-    masteryGroup.style.display = "none";
-    masteryInput.value = 0;
   }
 }
 
@@ -423,42 +433,38 @@ function calculateGearCost() {
   const curLv = parseInt(document.getElementById("curLv").value);
   const curMastery = parseInt(document.getElementById("curMastery").value) || 0;
 
-  let tarRarity = document.getElementById("tarRarity").value;
-
+  let tarRarity = curRarity;
+  if (curRarity === "legend") tarRarity = document.getElementById("tarRarity").value;
   if (curRarity === "mythic") tarRarity = "mythic";
-  else if (curRarity !== "legend") tarRarity = curRarity;
 
-  const tarLv = parseInt(document.getElementById("tarLv").value);
-  const tarMastery = parseInt(document.getElementById("tarMastery").value) || 0;
+  const isTarLvHidden = (document.getElementById("tarLvGroup").style.display === "none");
+  const isTarMasteryHidden = (document.getElementById("tarMasteryGroup").style.display === "none");
 
-  const ranks = ["normal", "good", "rare", "epic", "legend", "mythic"];
-  if (ranks.indexOf(curRarity) > ranks.indexOf(tarRarity)) {
-    alert("目標レアリティは現在より高く設定してください"); return;
-  }
-  if (curRarity === tarRarity) {
-    if (curLv > tarLv) {
-      alert("目標レベルは現在より高く設定してください"); return;
+  const tarLv = isTarLvHidden ? curLv : parseInt(document.getElementById("tarLv").value);
+  const tarMastery = isTarMasteryHidden ? curMastery : (parseInt(document.getElementById("tarMastery").value) || 0);
+
+  // ガード: 目標が低い場合のチェック
+  // カンスト状態の場合はチェック不要
+  if (!isTarLvHidden) {
+    const ranks = ["normal", "good", "rare", "epic", "legend", "mythic"];
+    if (ranks.indexOf(curRarity) > ranks.indexOf(tarRarity)) {
+      alert("目標レアリティは現在より高く設定してください"); return;
     }
-    if (curLv === tarLv && curMastery > tarMastery && (curRarity === "legend" || curRarity === "mythic")) {
-      alert("目標精錬レベルは現在より高く設定してください"); return;
-    }
-  }
-
-  if (tarLv > maxLevels[tarRarity]) {
-    alert(`目標レベルが${tarRarity}の上限(${maxLevels[tarRarity]})を超えています`);
-    return;
-  }
-
-  // --- ガード: 目標が神話の場合、目標精錬レベルは10以上必須 ---
-  if (tarRarity === "mythic") {
-    if (tarMastery < 10) {
-      alert("神話装備の精錬レベルは最低10です。\n目標精錬レベルを10以上に設定してください。");
-      return;
+    if (curRarity === tarRarity && curLv > tarLv) {
+      alert("目標装備レベルは現在より高く設定してください"); return;
     }
   }
 
-  // --- ガード: 神話装備のレベル上限解放条件 ---
-  if (tarRarity === "mythic") {
+  // 精錬レベルのガード
+  // 現在・目標の精錬レベルを比較 (レアリティが異なっていても精錬値は連続なので比較必須)
+  if (!isTarMasteryHidden && (curRarity === "legend" || curRarity === "mythic")) {
+    if (curMastery > tarMastery) {
+       alert("目標精錬レベルは現在より高く設定してください"); return;
+    }
+  }
+
+  // 神話解放条件チェック
+  if (tarRarity === "mythic" && !isTarLvHidden) {
     let requiredMastery = 0;
     if (tarLv >= 20) requiredMastery = 11;
     if (tarLv >= 40) requiredMastery = 12;
@@ -466,8 +472,9 @@ function calculateGearCost() {
     if (tarLv >= 80) requiredMastery = 14;
     if (tarLv === 100) requiredMastery = 15;
 
-    if (tarMastery < requiredMastery) {
-      alert(`神話装備 Lv${tarLv} にするには、精錬レベル ${requiredMastery} が必要です。\n目標精錬レベルを ${requiredMastery} 以上に設定してください。`);
+    const checkMastery = isTarMasteryHidden ? curMastery : tarMastery;
+    if (checkMastery < requiredMastery) {
+      alert(`神話装備 Lv${tarLv} にするには、精錬レベル ${requiredMastery} が必要です。`);
       return;
     }
   }
@@ -477,50 +484,38 @@ function calculateGearCost() {
   let totalWidget = 0;
   let totalMythril = 0;
 
-  // --- 計算処理 ---
   if (tarRarity !== "mythic") {
-    // 通常計算
-    for (let l = curLv; l < tarLv; l++) {
-      if (l < xpStandard.length) totalXP += xpStandard[l];
-    }
+    // 通常計算 (Legend -> Legend 含む)
+    for (let l = curLv; l < tarLv; l++) totalXP += xpStandard[l];
     if (tarRarity === "legend") {
       for (let m = curMastery; m < tarMastery; m++) {
         totalStone += masteryCost[m].s;
         totalWidget += masteryCost[m].w;
       }
     }
-
   } else {
-    // 神話を含む計算
-    if (curRarity !== "mythic") {
-      // レジェンドカンストまで
-      for (let l = curLv; l < 100; l++) {
-        totalXP += xpStandard[l];
-      }
-      if (curMastery < 10) {
-        for (let m = curMastery; m < 10; m++) {
-          totalStone += masteryCost[m].s;
-          totalWidget += masteryCost[m].w;
-        }
-      }
-      totalWidget += 2; // 昇格コスト
+    // 神話を含む計算 (Legend -> Mythic, Mythic -> Mythic)
+    let loopStartLv = curLv;
 
-      var mythicStartLv = 1; 
-      var mythicStartMastery = 10; 
-    } else {
-      var mythicStartLv = curLv;
-      var mythicStartMastery = curMastery;
+    // XP計算
+    if (curRarity !== "mythic") {
+      // レジェンド区間 (Lv100まで)
+      for (let l = curLv; l < 100; l++) totalXP += xpStandard[l];
+      totalWidget += 2; // 昇格コスト
+      loopStartLv = 1; // 神話はLv1からスタート
     }
 
-    // 神話区間
-    for (let l = mythicStartLv; l < tarLv; l++) {
+    // 神話区間 (レベル)
+    for (let l = loopStartLv; l < tarLv; l++) {
       const cost = getMythicLevelCost(l);
       totalXP += cost.xp;
       totalMythril += cost.mythril;
       totalWidget += cost.widget;
     }
 
-    for (let m = mythicStartMastery; m < tarMastery; m++) {
+    // ★修正箇所: 精錬コスト計算
+    // レジェンド区間・神話区間を分けずに、現在の値から目標の値までを一括で計算
+    for (let m = curMastery; m < tarMastery; m++) {
       if (m < masteryCost.length) {
         totalStone += masteryCost[m].s;
         totalWidget += masteryCost[m].w;
@@ -528,7 +523,6 @@ function calculateGearCost() {
     }
   }
 
-  // 表示更新
   document.getElementById("resXP").innerText = totalXP.toLocaleString();
   document.getElementById("resStone").innerText = totalStone.toLocaleString();
   document.getElementById("resWidget").innerText = totalWidget.toLocaleString();
@@ -541,12 +535,9 @@ function calculateGearCost() {
   document.getElementById("resultArea").style.display = "block";
 }
 
-// 初期化
 document.addEventListener('DOMContentLoaded', () => {
-  updateInputs('cur');
-  updateInputs('tar');
+  updateUI();
 });
-
 </script>
 
 </body>
