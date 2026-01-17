@@ -229,19 +229,20 @@
       <button class="tab-btn" onclick="switchTab('skill')"><i class="fas fa-book"></i> スキル</button>
     </div>
 
-    <div id="tab-favor" class="tab-content">
-      <div style="display: flex; gap: 20px;">
-        <div style="flex:1;">
-          <label>現在の好感度レベル</label>
-          <input type="number" id="currentLv" value="1" min="1" max="99" placeholder="1〜99">
+      <div id="tab-favor" class="tab-content">
+        <div style="display: flex; gap: 20px;">
+          <div style="flex:1;">
+            <label>現在の好感度レベル</label>
+            <select id="currentLv"></select>
+          </div>
+          <div style="flex:1;">
+            <label>目標の好感度レベル</label>
+            <select id="targetLv"></select>
+          </div>
         </div>
-        <div style="flex:1;">
-          <label>目標の好感度レベル</label>
-          <input type="number" id="targetLv" value="100" min="2" max="100" placeholder="2〜100">
-        </div>
-      </div>
 
-      <button class="calc-btn" onclick="calculateFavor()">好感度コストを計算</button>
+        <button class="calc-btn" onclick="calculateFavor()">好感度コストを計算</button>
+
       <div class="result-container" id="resFavorArea" style="display:none;">
         <div class="result-row">
           <span class="result-label">
@@ -893,9 +894,35 @@ const favorDataMap = {
     }
   }
 
-  // ページ読み込み時に初期化
-  document.addEventListener('DOMContentLoaded', updateSkillOptions);
+      // 好感度プルダウンの選択肢を生成する関数
+        function initFavorSelects() {
+          const curSelect = document.getElementById("currentLv");
+          const tarSelect = document.getElementById("targetLv");
 
+          // 現在レベル: 1〜99
+          for (let i = 1; i <= 99; i++) {
+            const op = document.createElement("option");
+            op.value = i;
+            op.text = i;
+            curSelect.appendChild(op);
+          }
+
+          // 目標レベル: 2〜100
+          for (let i = 2; i <= 100; i++) {
+            const op = document.createElement("option");
+            op.value = i;
+            op.text = i;
+            if (i === 100) op.selected = true; // デフォルトを100に設定
+            tarSelect.appendChild(op);
+          }
+        }
+
+        // ★ 変更: ページ読み込み時に両方の初期化関数を実行
+        document.addEventListener('DOMContentLoaded', () => {
+          updateSkillOptions(); // 既存のスキル用
+          initFavorSelects();   // 今回追加した好感度用
+        });
+  
 // ==========================================
 // ロジック (Logic)
 // ==========================================
