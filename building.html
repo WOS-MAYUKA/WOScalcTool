@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>建築コスト計算機 | WOS Tools</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* --- 共通デザイン定義 --- */
+  :root {
+    --bg-deep: #020617;
+    --glass-surface: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --accent-ice: #22d3ee;
+    --accent-fire: #f97316;
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+    --danger-color: #ff4d4d;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* 背景設定 */
+  .bg-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2;
+    background-image: url('image.png');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.6) contrast(1.1) blur(2px);
+  }
+  .bg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 90%);
+    pointer-events: none;
+  }
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj48Y2lyY2xlIGN4PSI1IiBjeT0iNSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+PC9zdmc+');
+    animation: snow 25s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 50px 500px; } }
+
+  /* コンテナ */
+  .container {
+    position: relative; z-index: 1; width: 100%; max-width: 800px;
+    padding: 40px 20px; box-sizing: border-box;
+  }
+
+  /* ナビゲーション */
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-sub); text-decoration: none;
+    margin-bottom: 30px; transition: 0.3s; font-size: 0.9rem;
+  }
+  .nav-back:hover { color: var(--accent-ice); transform: translateX(-5px); }
+
+  /* カードデザイン */
+  .calc-card {
+    background: var(--glass-surface);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  h2 {
+    text-align: center; font-size: 1.8rem; margin: 0 0 30px 0;
+    color: var(--text-main); letter-spacing: 0.1em;
+    text-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 20px;
+  }
+
+  label {
+    display: block; margin-top: 20px; margin-bottom: 8px;
+    font-weight: 700; font-size: 0.9rem; color: var(--accent-ice);
+    letter-spacing: 0.05em;
+  }
+
+  /* 入力フォーム */
+  select, input {
+    width: 100%; padding: 14px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-main); font-size: 16px;
+    box-sizing: border-box; transition: 0.3s;
+    appearance: none;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent-ice); outline: none;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* タブデザイン */
+  .tab-container {
+    display: flex; gap: 10px; margin: 30px 0 20px 0;
+    background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px;
+    border: 1px solid var(--glass-border);
+  }
+  .tab-btn {
+    flex: 1; padding: 12px;
+    background: transparent; border: 1px solid transparent; border-radius: 6px;
+    color: var(--text-sub); font-weight: bold; cursor: pointer;
+    transition: 0.3s; letter-spacing: 0.1em;
+  }
+  .tab-btn:hover { color: var(--accent-ice); }
+  .tab-btn.active {
+    background: rgba(34, 211, 238, 0.15);
+    border-color: var(--accent-ice);
+    color: var(--accent-ice);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.1);
+  }
+
+  /* レイアウト補助 */
+  .flex-row { display: flex; gap: 20px; }
+  .flex-col { flex: 1; }
+
+  /* 計算ボタン */
+  button.calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent-ice), #0ea5e9);
+    color: #fff; padding: 18px; border: none; border-radius: 50px;
+    font-size: 1.1rem; font-weight: bold; margin-top: 40px;
+    cursor: pointer; transition: 0.3s; letter-spacing: 0.1em;
+    box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+  }
+  button.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+  }
+  button.calc-btn:active { transform: scale(0.98); }
+
+  /* 結果表示エリア */
+  .result-container {
+    margin-top: 40px; background-color: rgba(0,0,0,0.3);
+    border-radius: 12px; padding: 25px;
+    border: 1px solid var(--accent-ice);
+    box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
+    animation: fadeIn 0.5s ease;
+    display: none; /* 初期状態は非表示 */
+  }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px; padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .result-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .result-label { 
+    font-size: 0.95rem; color: var(--text-sub); 
+    display: flex; align-items: center; gap: 10px;
+    font-weight: bold;
+  }
+
+  .result-value {
+    font-size: 1.5rem; font-weight: 800; color: var(--accent-ice);
+    font-family: "Helvetica Neue", sans-serif;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  }
+
+  /* アイコンカラー設定 */
+  .icon-meat { color: #f43f5e; margin-right: 5px; } /* 赤/ピンク */
+  .icon-wood { color: #f97316; margin-right: 5px; } /* オレンジ/茶 */
+  .icon-coal { color: #64748b; margin-right: 5px; } /* グレー */
+  .icon-iron { color: #6366f1; margin-right: 5px; } /* インディゴ */
+  .icon-time { color: #fbbf24; margin-right: 5px; } /* 黄色 */
+  .icon-warn { color: #ff4d4d; margin-right: 5px; } /* 警告 */
+
+  /* 要件ボックス */
+  .requirements-box {
+    margin-top: 25px;
+    background: rgba(255, 50, 50, 0.1);
+    border: 1px solid rgba(255, 50, 50, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #ffcccc;
+    display: none; /* 初期状態は非表示 */
+  }
+  .requirements-box h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: var(--danger-color);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .fire-crystal-msg {
+    text-align: center; padding: 40px; color: var(--text-sub);
+    font-size: 1.1rem;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  footer {
+    margin-top: auto; padding: 40px; width: 100%; text-align: center;
+    color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+<div class="snow-container"></div>
+
+<div class="container">
+  <a href="index.html" class="nav-back"><i class="fas fa-chevron-left"></i> トップページに戻る</a>
+
+  <div class="calc-card">
+    <h2>建築コスト計算機</h2>
+
+    <div class="tab-container">
+      <button class="tab-btn active" onclick="switchTab('military')">
+        <i class="fas fa-hammer"></i> 軍備施設
+      </button>
+      <button class="tab-btn" onclick="switchTab('fireCrystal')">
+        <i class="fas fa-fire"></i> 火晶建造物
+      </button>
+    </div>
+
+    <div id="tab-military" class="fade-in">
+
+        <label for="buildingSelect">施設選択</label>
+        <select id="buildingSelect">
+            </select>
+
+        <div class="flex-row">
+            <div class="flex-col">
+                <label for="currentLevel">現在のレベル</label>
+                <select id="currentLevel">
+                    </select>
+            </div>
+            <div class="flex-col">
+                <label for="targetLevel">目標のレベル</label>
+                <select id="targetLevel">
+                    </select>
+            </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">必要コストを計算</button>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-drumstick-bite icon-meat"></i> 生肉</span>
+                <span class="result-value" id="resMeat">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-tree icon-wood"></i> 木材</span>
+                <span class="result-value" id="resWood">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-cube icon-coal"></i> 石炭</span>
+                <span class="result-value" id="resCoal">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-link icon-iron"></i> 鉄鉱</span>
+                <span class="result-value" id="resIron">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-clock icon-time"></i> 建設時間</span>
+                <span class="result-value" id="resTime">0秒</span>
+            </div>
+
+            <div class="requirements-box" id="reqBox">
+                <h4><i class="fas fa-triangle-exclamation icon-warn"></i> 目標レベル到達に必要な条件</h4>
+                <div id="resReq">なし</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-fireCrystal" style="display: none;">
+
+        <label for="fcBuildingSelect">施設選択</label>
+        <select id="fcBuildingSelect">
+            </select>
+
+        <div class="flex-row">
+            <div class="flex-col">
+                <label for="fcCurrentLevel">現在のレベル</label>
+                <select id="fcCurrentLevel">
+                    </select>
+            </div>
+            <div class="flex-col">
+                <label for="fcTargetLevel">目標のレベル</label>
+                <select id="fcTargetLevel">
+                    </select>
+            </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculateCrystal()">必要コストを計算</button>
+
+        <div class="result-container" id="fcResultContainer">
+            <div class="result-row">
+                <span class="result-label" style="color:#ff7e33"><i class="fas fa-fire"></i> 火晶</span>
+                <span class="result-value" id="resFcCrystal">0</span>
+            </div>
+            <div class="result-row" id="rowRfc" style="display:none;">
+                <span class="result-label" style="color:#ff4d4d"><i class="fas fa-gem"></i> 精錬火晶</span>
+                <span class="result-value" id="resFcRefined">0</span>
+            </div>
+
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-drumstick-bite icon-meat"></i> 生肉</span>
+                <span class="result-value" id="resFcMeat">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-tree icon-wood"></i> 木材</span>
+                <span class="result-value" id="resFcWood">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-cube icon-coal"></i> 石炭</span>
+                <span class="result-value" id="resFcCoal">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-link icon-iron"></i> 鉄鉱</span>
+                <span class="result-value" id="resFcIron">0</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label"><i class="fas fa-clock icon-time"></i> 建設時間</span>
+                <span class="result-value" id="resFcTime">0秒</span>
+            </div>
+
+            <div class="requirements-box" id="reqFcBox">
+                <h4><i class="fas fa-triangle-exclamation icon-warn"></i> 目標レベル到達に必要な条件</h4>
+                <div id="resFcReq">なし</div>
+            </div>
+        </div>
+    </div>
+
+  </div> </div> <footer>
+  &copy; 2026 WOS Tools Created by MAYUKA
+</footer>
+
+<script>
+    /**
+     * Helper Functions
+     */
+    function parseUnit(str) {
+        if (!str) return 0;
+        str = str.toString().toUpperCase();
+        if (str.includes('K')) return parseFloat(str.replace('K', '')) * 1000;
+        if (str.includes('M')) return parseFloat(str.replace('M', '')) * 1000000;
+        if (str.includes('J')) return parseFloat(str.replace('J', '')) * 1000;
+        return parseFloat(str);
+    }
+
+    function parseTime(str) {
+        if (!str) return 0;
+        let days = 0;
+        let timePart = str;
+        if (str.includes('d')) {
+            const parts = str.split('d');
+            days = parseInt(parts[0].trim());
+            timePart = parts[1].trim();
+        }
+        const times = timePart.split(':');
+        const hours = parseInt(times[0]);
+        const minutes = parseInt(times[1]);
+        const seconds = parseInt(times[2]);
+        return (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+    }
+
+    function formatTime(totalSeconds) {
+        const days = Math.floor(totalSeconds / 86400);
+        totalSeconds %= 86400;
+        const hours = Math.floor(totalSeconds / 3600);
+        totalSeconds %= 3600;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        let res = '';
+        if (days > 0) res += `${days}(d) `;
+        if (hours > 0) res += `${hours}(h) `;
+        if (minutes > 0) res += `${minutes}(m) `;
+        if (seconds > 0 || res === '') res += `${seconds}(s)`;
+        return res;
+    }
+
+    function formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        return num.toLocaleString();
+    }
+
+    // --- DATA DEFINITION (MILITARY) ---
+    // 1. 大溶鉱炉 (Furnace)
+    const dataFurnace = [
+           { lv: 2, req: "伐採場 Lv.1", m:0, w:180, c:0, i:0, t:"00:00:06" },
+            { lv: 3, req: "民家1 Lv.2", m:0, w:805, c:0, i:0, t:"00:01:00" },
+            { lv: 4, req: "石炭工場 Lv.3", m:0, w:1800, c:360, i:0, t:"00:03:00" },
+            { lv: 5, req: "英雄ロビー / 民家3 Lv.3", m:0, w:7600, c:1500, i:0, t:"00:10:00" },
+            { lv: 6, req: "石炭工場 Lv.5", m:0, w:19000, c:3800, i:960, t:"00:30:00" },
+            { lv: 7, req: "ハンターの家 Lv.6", m:0, w:69000, c:13000, i:3400, t:"01:00:00" },
+            { lv: 8, req: "盾兵の兵舎 Lv.7", m:0, w:120000, c:25000, i:6300, t:"02:30:00" },
+            { lv: 9, req: "大使館Lv.8 / 軍医所Lv.1", m:0, w:260000, c:52000, i:13000, t:"04:30:00" },
+            { lv: 10, req: "弓兵の兵舎 Lv.9", m:0, w:460000, c:92000, i:23000, t:"06:00:00" },
+            { lv: 11, req: "大使館Lv.10 / 槍兵の兵舎Lv.10", m:1300000, w:1300000, c:260000, i:65000, t:"07:30:00" },
+            { lv: 12, req: "大使館Lv.11 / 司令部Lv.1", m:1600000, w:1600000, c:330000, i:84000, t:"09:00:00" },
+            { lv: 13, req: "大使館Lv.12 / 盾兵の兵舎Lv.12", m:2300000, w:2300000, c:470000, i:110000, t:"11:00:00" },
+            { lv: 14, req: "大使館Lv.13 / 弓兵の兵舎Lv.13", m:3100000, w:3100000, c:630000, i:150000, t:"14:00:00" },
+            { lv: 15, req: "大使館Lv.14 / 槍兵の兵舎Lv.14", m:4600000, w:4600000, c:930000, i:230000, t:"18:00:00" },
+            { lv: 16, req: "大使館Lv.15", m:5900000, w:5900000, c:1100000, i:290000, t:"1d 06:28:00" },
+            { lv: 17, req: "大使館Lv.16 / 盾兵の兵舎Lv.16", m:9300000, w:9300000, c:1800000, i:460000, t:"1d 12:34:00" },
+            { lv: 18, req: "大使館Lv.17 / 弓兵の兵舎Lv.17", m:12000000, w:12000000, c:2500000, i:620000, t:"1d 19:53:00" },
+            { lv: 19, req: "大使館Lv.18 / 槍兵の兵舎Lv.18", m:15000000, w:15000000, c:3100000, i:780000, t:"2d 17:50:00" },
+            { lv: 20, req: "大使館Lv.19", m:21000000, w:21000000, c:4300000, i:1000000, t:"3d 10:18:00" },
+            { lv: 21, req: "大使館Lv.20 / 盾兵の兵舎Lv.20", m:27000000, w:27000000, c:5400000, i:1300000, t:"4d 10:59:00" },
+            { lv: 22, req: "大使館Lv.21 / 弓兵の兵舎Lv.21", m:36000000, w:36000000, c:7200000, i:1800000, t:"6d 16:29:00" },
+            { lv: 23, req: "大使館Lv.22 / 槍兵の兵舎Lv.22", m:44000000, w:44000000, c:8900000, i:2200000, t:"9d 08:40:00" },
+            { lv: 24, req: "大使館Lv.23", m:60000000, w:60000000, c:12000000, i:3000000, t:"13d 02:33:00" },
+            { lv: 25, req: "大使館Lv.24 / 盾兵の兵舎Lv.24", m:81000000, w:81000000, c:16000000, i:4000000, t:"18d 08:22:00" },
+            { lv: 26, req: "大使館Lv.25 / 弓兵の兵舎Lv.25", m:100000000, w:100000000, c:21000000, i:5200000, t:"21d 02:26:00" },
+            { lv: 27, req: "大使館Lv.26 / 槍兵の兵舎Lv.26", m:140000000, w:140000000, c:24000000, i:7400000, t:"25d 07:43:00" },
+            { lv: 28, req: "大使館Lv.27", m:190000000, w:190000000, c:39000000, i:9900000, t:"29d 02:52:00" },
+            { lv: 29, req: "大使館Lv.28 / 盾兵の兵舎Lv.28", m:240000000, w:240000000, c:49000000, i:12000000, t:"33d 11:42:00" },
+            { lv: 30, req: "大使館Lv.29 / 弓兵の兵舎Lv.29", m:300000000, w:300000000, c:60000000, i:15000000, t:"40d 04:27:00" }
+        ];
+
+    // 2. 大使館 (Embassy)
+    const dataEmbassy = [
+        { lv: 1, req: "大溶鉱炉 Lv.8", m:0, w:60, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.8", m:0, w:90, c:0, i:0, t:"00:00:10" },
+        { lv: 3, req: "大溶鉱炉 Lv.8", m:0, w:400, c:0, i:0, t:"00:01:00" },
+        { lv: 4, req: "大溶鉱炉 Lv.8", m:0, w:900, c:180, i:0, t:"00:02:00" },
+        { lv: 5, req: "大溶鉱炉 Lv.8", m:0, w:3800, c:760, i:0, t:"00:06:40" },
+        { lv: 6, req: "大溶鉱炉 Lv.8", m:0, w:9600, c:1900, i:480, t:"00:13:20" },
+        { lv: 7, req: "大溶鉱炉 Lv.8", m:0, w:34000, c:6900, i:1700, t:"00:25:00" },
+        { lv: 8, req: "大溶鉱炉 Lv.8", m:0, w:63000, c:12000, i:3100, t:"00:45:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.8", m:0, w:130000, c:26000, i:6500, t:"00:40:30" },
+        { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:230000, c:46000, i:11000, t:"00:54:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11", m:260000, w:260000, c:52000, i:13000, t:"04:57:00" },
+        { lv: 12, req: "大溶鉱炉 Lv.12", m:330000, w:330000, c:67000, i:16000, t:"05:56:00" },
+        { lv: 13, req: "大溶鉱炉 Lv.13", m:470000, w:470000, c:95000, i:23000, t:"07:15:30" },
+        { lv: 14, req: "大溶鉱炉 Lv.14", m:630000, w:630000, c:120000, i:31000, t:"09:14:00" },
+        { lv: 15, req: "大溶鉱炉 Lv.15", m:930000, w:930000, c:180000, i:46000, t:"11:52:30" },
+        { lv: 16, req: "大溶鉱炉 Lv.16", m:1100000, w:1100000, c:230000, i:59000, t:"20:07:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17", m:1800000, w:1800000, c:370000, i:93000, t:"1d 00:08:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18", m:2500000, w:2500000, c:500000, i:120000, t:"1d 04:58:00" },
+        { lv: 19, req: "大溶鉱炉 Lv.19", m:3100000, w:3100000, c:620000, i:150000, t:"1d 19:27:00" },
+        { lv: 20, req: "大溶鉱炉 Lv.20", m:4300000, w:4300000, c:860000, i:210000, t:"2d 06:19:00" },
+        { lv: 21, req: "大溶鉱炉 Lv.21", m:5400000, w:5400000, c:1000000, i:270000, t:"2d 22:36:00" },
+        { lv: 22, req: "大溶鉱炉 Lv.22", m:7200000, w:7200000, c:1400000, i:360000, t:"4d 09:55:00" },
+        { lv: 23, req: "大溶鉱炉 Lv.23", m:8900000, w:8900000, c:1700000, i:440000, t:"6d 04:17:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24", m:12000000, w:12000000, c:2400000, i:600000, t:"8d 15:36:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25", m:16000000, w:16000000, c:3200000, i:810000, t:"12d 02:38:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26", m:21000000, w:21000000, c:4200000, i:1000000, t:"13d 22:14:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27", m:29000000, w:29000000, c:5900000, i:1400000, t:"16d 17:05:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28", m:39000000, w:39000000, c:7900000, i:1900000, t:"19d 05:15:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29", m:49000000, w:49000000, c:9800000, i:2400000, t:"22d 02:26:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30", m:60000000, w:60000000, c:12000000, i:3000000, t:"26d 12:32:00" }
+        ];
+
+    // 3. 司令部
+    const dataCommand = [
+        { lv: 1, req: "大溶鉱炉 Lv.10/ 大使館 Lv.1", m:0, w:80, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.10/ 大使館 Lv.2", m:0, w:125, c:0, i:0, t:"00:00:08" },
+        { lv: 3, req: "大溶鉱炉 Lv.10/ 大使館 Lv.3", m:0, w:565, c:0, i:0, t:"00:00:35" },
+        { lv: 4, req: "大溶鉱炉 Lv.10/ 大使館 Lv.4", m:0, w:1200, c:250, i:0, t:"00:01:45" },
+        { lv: 5, req: "大溶鉱炉 Lv.10/ 大使館 Lv.5", m:0, w:5300, c:1000, i:0, t:"00:03:35" },
+        { lv: 6, req: "大溶鉱炉 Lv.10/ 大使館 Lv.6", m:0, w:13000, c:2600, i:670, t:"00:07:10" },
+        { lv: 7, req: "大溶鉱炉 Lv.10/ 大使館 Lv.7", m:0, w:48000, c:9600, i:2400, t:"00:14:00" },
+        { lv: 8, req: "大溶鉱炉 Lv.10/ 大使館 Lv.8", m:0, w:88000, c:17000, i:4400, t:"00:21:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.10/ 大使館 Lv.9", m:0, w:180000, c:36000, i:9100, t:"00:32:00" },
+        { lv: 10, req: "大溶鉱炉 Lv.10/ 大使館 Lv.10", m:0, w:320000, c:64000, i:16000, t:"00:43:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11/ 大使館 Lv.11", m:390000, w:390000, c:79000, i:19000, t:"00:54:00" },
+        { lv: 12, req: "大溶鉱炉 Lv.12/ 大使館 Lv.12", m:500000, w:500000, c:100000, i:25000, t:"01:04:30" },
+        { lv: 13, req: "大溶鉱炉 Lv.13/ 大使館 Lv.13", m:710000, w:710000, c:140000, i:35000, t:"01:19:00" },
+        { lv: 14, req: "大溶鉱炉 Lv.14/ 大使館 Lv.14", m:940000, w:940000, c:180000, i:47000, t:"01:40:30" },
+        { lv: 15, req: "大溶鉱炉 Lv.15/ 大使館 Lv.15", m:1300000, w:1300000, c:270000, i:69000, t:"02:09:30" },
+        { lv: 16, req: "大溶鉱炉 Lv.16/ 大使館 Lv.16", m:1700000, w:1700000, c:350000, i:89000, t:"03:39:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17/ 大使館 Lv.17", m:2700000, w:2700000, c:550000, i:130000, t:"04:23:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18/ 大使館 Lv.18", m:3700000, w:3700000, c:75000, i:180000, t:"05:16:00" },
+        { lv: 19, req: "大溶鉱炉 Lv.19/ 大使館 Lv.19", m:4700000, w:4700000, c:940000, i:230000, t:"07:54:00" },
+        { lv: 20, req: "大溶鉱炉 Lv.20/ 大使館 Lv.20", m:6400000, w:6400000, c:1200000, i:320000, t:"09:52:30" },
+        { lv: 21, req: "大溶鉱炉 Lv.21/ 大使館 Lv.21", m:8100000, w:8100000, c:1600000, i:400000, t:"12:50:00" },
+        { lv: 22, req: "大溶鉱炉 Lv.22/ 大使館 Lv.22", m:10000000, w:10000000, c:2100000, i:540000, t:"19:15:30" },
+        { lv: 23, req: "大溶鉱炉 Lv.23/ 大使館 Lv.23", m:13000000, w:13000000, c:2600000, i:670000, t:"1d 02:57:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24/ 大使館 Lv.24", m:18000000, w:18000000, c:3600000, i:900000, t:"1d 13:44:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25/ 大使館 Lv.25", m:24000000, w:24000000, c:4900000, i:1200000, t:"2d 04:50:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26/ 大使館 Lv.26", m:31000000, w:31000000, c:6300000, i:1500000, t:"2d 12:46:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27/ 大使館 Lv.27", m:44000000, w:44000000, c:8900000, i:2200000, t:"3d 00:55:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28/ 大使館 Lv.28", m:59000000, w:59000000, c:11000000, i:2900000, t:"3d 11:51:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29/ 大使館 Lv.29", m:73000000, w:73000000, c:18000000, i:4500000, t:"4d 00:26:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30/ 大使館 Lv.30", m:90000000, w:90000000, c:18000000, i:4500000, t:"4d 19:44:00" }
+        ];
+
+    // 4. 盾兵の兵舎
+    const dataInfantry = [        { lv: 1, req: "大溶鉱炉 Lv.7", m:0, w:0, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.7", m:0, w:140, c:0, i:0, t:"00:00:09" },
+        { lv: 3, req: "大溶鉱炉 Lv.7", m:0, w:645, c:0, i:0, t:"00:00:45" },
+        { lv: 4, req: "大溶鉱炉 Lv.7", m:0, w:1400, c:285, i:0, t:"00:02:15" },
+        { lv: 5, req: "大溶鉱炉 Lv.7", m:0, w:6000, c:1200, i:0, t:"00:04:30" },
+        { lv: 6, req: "大溶鉱炉 Lv.7", m:0, w:15000, c:3000, i:765, t:"00:09:00" },
+        { lv: 7, req: "大溶鉱炉 Lv.7", m:0, w:55000, c:11000, i:2700, t:"00:18:00" },
+        { lv: 8, req: "大溶鉱炉 Lv.7", m:0, w:100000, c:20000, i:5000, t:"00:27:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.7", m:0, w:200000, c:41000, i:10000, t:"00:40:30" },
+        { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:360000, c:73000, i:18000, t:"00:54:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11", m:460000, w:460000, c:92000, i:23000, t:"01:07:30" },
+        { lv: 12, req: "大溶鉱炉 Lv.12", m:580000, w:580000, c:110000, i:29000, t:"01:21:00" },
+        { lv: 13, req: "大溶鉱炉 Lv.13", m:830000, w:830000, c:160000, i:41000, t:"01:39:00" },
+        { lv: 14, req: "大溶鉱炉 Lv.14", m:1100000, w:1100000, c:220000, i:55000, t:"02:06:00" },
+        { lv: 15, req: "大溶鉱炉 Lv.15", m:1600000, w:1600000, c:320000, i:81000, t:"02:42:00" },
+        { lv: 16, req: "大溶鉱炉 Lv.16", m:2000000, w:2000000, c:410000, i:100000, t:"04:34:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17", m:3200000, w:3200000, c:65000, i:160000, t:"05:29:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18", m:4300000, w:4300000, c:87000, i:210000, t:"06:35:00" },
+        { lv: 19, req: "大溶鉱炉 Lv.19", m:5400000, w:5400000, c:1000000, i:270000, t:"09:52:30" },
+        { lv: 20, req: "大溶鉱炉 Lv.20", m:7500000, w:7500000, c:1500000, i:370000, t:"12:20:30" },
+        { lv: 21, req: "大溶鉱炉 Lv.21", m:9500000, w:9500000, c:1900000, i:470000, t:"16:02:30" },
+        { lv: 22, req: "大溶鉱炉 Lv.22", m:12000000, w:12000000, c:2500000, i:630000, t:"1d 00:04:00" },
+        { lv: 23, req: "大溶鉱炉 Lv.23", m:15000000, w:15000000, c:3100000, i:490000, t:"1d 09:42:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24", m:21000000, w:21000000, c:4200000, i:1000000, t:"1d 23:11:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25", m:28000000, w:28000000, c:5700000, i:1400000, t:"2d 18:03:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26", m:36000000, w:36000000, c:7300000, i:1800000, t:"3d 03:57:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27", m:52000000, w:52000000, c:10000000, i:2600000, t:"3d 19:09:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28", m:69000000, w:69000000, c:13000000, i:3400000, t:"4d 08:49:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29", m:86000000, w:86000000, c:17000000, i:4300000, t:"5d 00:33:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30", m:100000000, w:100000000, c:21000000, i:5200000, t:"6d 00:40:00" }
+        ];
+
+    // 5. 槍兵の兵舎
+    const dataLancer = [
+      { lv: 1, req: "大溶鉱炉 Lv.9", m:0, w:95, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.9", m:0, w:140, c:0, i:0, t:"00:00:09" },
+        { lv: 3, req: "大溶鉱炉 Lv.9", m:0, w:645, c:0, i:0, t:"00:00:45" },
+        { lv: 4, req: "大溶鉱炉 Lv.9", m:0, w:1400, c:285, i:0, t:"00:02:15" },
+        { lv: 5, req: "大溶鉱炉 Lv.9", m:0, w:6000, c:1200, i:0, t:"00:04:30" },
+        { lv: 6, req: "大溶鉱炉 Lv.9", m:0, w:15000, c:3000, i:765, t:"00:09:00" },
+        { lv: 7, req: "大溶鉱炉 Lv.9", m:0, w:55000, c:11000, i:2700, t:"00:18:00" },
+        { lv: 8, req: "大溶鉱炉 Lv.9", m:0, w:100000, c:20000, i:5000, t:"00:27:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.9", m:0, w:200000, c:41000, i:10000, t:"00:40:30" },
+        { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:360000, c:73000, i:18000, t:"00:54:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11", m:460000, w:460000, c:92000, i:23000, t:"01:07:30" },
+        { lv: 12, req: "大溶鉱炉 Lv.12", m:580000, w:580000, c:110000, i:29000, t:"01:21:00" },
+        { lv: 13, req: "大溶鉱炉 Lv.13", m:830000, w:830000, c:160000, i:41000, t:"01:39:00" },
+        { lv: 14, req: "大溶鉱炉 Lv.14", m:1100000, w:1100000, c:220000, i:55000, t:"02:06:00" },
+        { lv: 15, req: "大溶鉱炉 Lv.15", m:1600000, w:1600000, c:320000, i:81000, t:"02:42:00" },
+        { lv: 16, req: "大溶鉱炉 Lv.16", m:2000000, w:2000000, c:410000, i:100000, t:"04:34:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17", m:3200000, w:3200000, c:65000, i:160000, t:"05:29:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18", m:4300000, w:4300000, c:87000, i:210000, t:"06:35:00" },
+        { lv: 19, req: "大溶鉱炉 Lv.19", m:5400000, w:5400000, c:1000000, i:270000, t:"09:52:30" },
+        { lv: 20, req: "大溶鉱炉 Lv.20", m:7500000, w:7500000, c:1500000, i:370000, t:"12:20:30" },
+        { lv: 21, req: "大溶鉱炉 Lv.21", m:9500000, w:9500000, c:1900000, i:470000, t:"16:02:30" },
+        { lv: 22, req: "大溶鉱炉 Lv.22", m:12000000, w:12000000, c:2500000, i:630000, t:"1d 00:04:00" },
+        { lv: 23, req: "大溶鉱炉 Lv.23", m:15000000, w:15000000, c:3100000, i:490000, t:"1d 09:42:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24", m:21000000, w:21000000, c:4200000, i:1000000, t:"1d 23:11:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25", m:28000000, w:28000000, c:5700000, i:1400000, t:"2d 18:03:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26", m:36000000, w:36000000, c:7300000, i:1800000, t:"3d 03:57:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27", m:52000000, w:52000000, c:10000000, i:2600000, t:"3d 19:09:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28", m:69000000, w:69000000, c:13000000, i:3400000, t:"4d 08:49:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29", m:86000000, w:86000000, c:17000000, i:4300000, t:"5d 00:33:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30", m:100000000, w:100000000, c:21000000, i:5200000, t:"6d 00:40:00" }
+        ];
+
+    // 6. 弓兵の兵舎
+    const dataMarksman = [      
+        { lv: 1, req: "大溶鉱炉 Lv.9", m:0, w:95, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.9", m:0, w:140, c:0, i:0, t:"00:00:09" },
+        { lv: 3, req: "大溶鉱炉 Lv.9", m:0, w:645, c:0, i:0, t:"00:00:45" },
+        { lv: 4, req: "大溶鉱炉 Lv.9", m:0, w:1400, c:285, i:0, t:"00:02:15" },
+        { lv: 5, req: "大溶鉱炉 Lv.9", m:0, w:6000, c:1200, i:0, t:"00:04:30" },
+        { lv: 6, req: "大溶鉱炉 Lv.9", m:0, w:15000, c:3000, i:765, t:"00:09:00" },
+        { lv: 7, req: "大溶鉱炉 Lv.9", m:0, w:55000, c:11000, i:2700, t:"00:18:00" },
+        { lv: 8, req: "大溶鉱炉 Lv.9", m:0, w:100000, c:20000, i:5000, t:"00:27:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.9", m:0, w:200000, c:41000, i:10000, t:"00:40:30" },
+        { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:360000, c:73000, i:18000, t:"00:54:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11", m:460000, w:460000, c:92000, i:23000, t:"01:07:30" },
+        { lv: 12, req: "大溶鉱炉 Lv.12", m:580000, w:580000, c:110000, i:29000, t:"01:21:00" },
+        { lv: 13, req: "大溶鉱炉 Lv.13", m:830000, w:830000, c:160000, i:41000, t:"01:39:00" },
+        { lv: 14, req: "大溶鉱炉 Lv.14", m:1100000, w:1100000, c:220000, i:55000, t:"02:06:00" },
+        { lv: 15, req: "大溶鉱炉 Lv.15", m:1600000, w:1600000, c:320000, i:81000, t:"02:42:00" },
+        { lv: 16, req: "大溶鉱炉 Lv.16", m:2000000, w:2000000, c:410000, i:100000, t:"04:34:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17", m:3200000, w:3200000, c:65000, i:160000, t:"05:29:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18", m:4300000, w:4300000, c:87000, i:210000, t:"06:35:00" },
+        { lv: 19, req: "大溶鉱炉 Lv.19", m:5400000, w:5400000, c:1000000, i:270000, t:"09:52:30" },
+        { lv: 20, req: "大溶鉱炉 Lv.20", m:7500000, w:7500000, c:1500000, i:370000, t:"12:20:30" },
+        { lv: 21, req: "大溶鉱炉 Lv.21", m:9500000, w:9500000, c:1900000, i:470000, t:"16:02:30" },
+        { lv: 22, req: "大溶鉱炉 Lv.22", m:12000000, w:12000000, c:2500000, i:630000, t:"1d 00:04:00" },
+        { lv: 23, req: "大溶鉱炉 Lv.23", m:15000000, w:15000000, c:3100000, i:490000, t:"1d 09:42:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24", m:21000000, w:21000000, c:4200000, i:1000000, t:"1d 23:11:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25", m:28000000, w:28000000, c:5700000, i:1400000, t:"2d 18:03:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26", m:36000000, w:36000000, c:7300000, i:1800000, t:"3d 03:57:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27", m:52000000, w:52000000, c:10000000, i:2600000, t:"3d 19:09:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28", m:69000000, w:69000000, c:13000000, i:3400000, t:"4d 08:49:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29", m:86000000, w:86000000, c:17000000, i:4300000, t:"5d 00:33:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30", m:100000000, w:100000000, c:21000000, i:5200000, t:"6d 00:40:00" }
+        ];
+
+    // 7. 科学研究所
+    const dataResearch = [
+        { lv: 1, req: "大溶鉱炉 Lv.9", m:0, w:105, c:0, i:0, t:"00:00:02" },
+            { lv: 2, req: "大溶鉱炉 Lv.9", m:0, w:160, c:0, i:0, t:"00:00:09" },
+            { lv: 3, req: "大溶鉱炉 Lv.9", m:0, w:725, c:0, i:0, t:"00:00:45" },
+            { lv: 4, req: "大溶鉱炉 Lv.9", m:0, w:1600, c:320, i:0, t:"00:02:15" },
+            { lv: 5, req: "大溶鉱炉 Lv.9", m:0, w:6800, c:1300, i:0, t:"00:04:30" },
+            { lv: 6, req: "大溶鉱炉 Lv.9", m:0, w:17000, c:3400, i:860, t:"00:09:00" },
+            { lv: 7, req: "大溶鉱炉 Lv.9", m:0, w:62000, c:12000, i:3100, t:"00:18:00" },
+            { lv: 8, req: "大溶鉱炉 Lv.9", m:0, w:110000, c:22000, i:5600, t:"00:27:00" },
+            { lv: 9, req: "大溶鉱炉 Lv.9", m:0, w:230000, c:47000, i:11000, t:"00:40:30" },
+            { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:410000, c:82000, i:20000, t:"00:54:00" },
+            { lv: 11, req: "大溶鉱炉 Lv.11", m:520000, w:520000, c:100000, i:26000, t:"01:07:30" },
+            { lv: 12, req: "大溶鉱炉 Lv.12", m:670000, w:670000, c:130000, i:33000, t:"01:21:00" },
+            { lv: 13, req: "大溶鉱炉 Lv.13", m:950000, w:950000, c:190000, i:47000, t:"01:39:00" },
+            { lv: 14, req: "大溶鉱炉 Lv.14", m:1200000, w:1200000, c:250000, i:63000, t:"02:06:00" },
+            { lv: 15, req: "大溶鉱炉 Lv.15", m:1800000, w:1800000, c:370000, i:93000, t:"02:42:00" },
+            { lv: 16, req: "大溶鉱炉 Lv.16", m:2300000, w:2300000, c:470000, i:110000, t:"04:34:00" },
+            { lv: 17, req: "大溶鉱炉 Lv.17", m:3700000, w:3700000, c:740000, i:180000, t:"05:29:00" },
+            { lv: 18, req: "大溶鉱炉 Lv.18", m:5000000, w:5000000, c:1000000, i:250000, t:"06:35:00" },
+            { lv: 19, req: "大溶鉱炉 Lv.19", m:6200000, w:6200000, c:1200000, i:310000, t:"09:52:30" },
+            { lv: 20, req: "大溶鉱炉 Lv.20", m:8600000, w:8600000, c:1700000, i:430000, t:"12:20:30" },
+            { lv: 21, req: "大溶鉱炉 Lv.21", m:10000000, w:10000000, c:2100000, i:540000, t:"16:02:30" },
+            { lv: 22, req: "大溶鉱炉 Lv.22", m:14000000, w:14000000, c:2800000, i:720000, t:"1d 00:04:00" },
+            { lv: 23, req: "大溶鉱炉 Lv.23", m:17000000, w:17000000, c:3500000, i:890000, t:"1d 09:42:00" },
+            { lv: 24, req: "大溶鉱炉 Lv.24", m:24000000, w:24000000, c:4800000, i:1200000, t:"1d 23:11:00" },
+            { lv: 25, req: "大溶鉱炉 Lv.25", m:32000000, w:32000000, c:6500000, i:1600000, t:"2d 18:03:00" },
+            { lv: 26, req: "大溶鉱炉 Lv.26", m:42000000, w:42000000, c:8400000, i:2100000, t:"3d 03:57:00" },
+            { lv: 27, req: "大溶鉱炉 Lv.27", m:59000000, w:59000000, c:11000000, i:2900000, t:"3d 19:09:00" },
+            { lv: 28, req: "大溶鉱炉 Lv.28", m:79000000, w:79000000, c:15000000, i:3900000, t:"4d 08:49:00" },
+            { lv: 29, req: "大溶鉱炉 Lv.29", m:98000000, w:98000000, c:19000000, i:4900000, t:"5d 00:33:00" },
+            { lv: 30, req: "大溶鉱炉 Lv.30", m:100000000, w:100000000, c:21000000, i:5200000, t:"6d 00:40:00" }
+        ];
+
+    // 8. 倉庫
+    const dataWarehouse = [
+        { lv: 1, req: "大溶鉱炉 Lv.9", m:0, w:60, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.9", m:0, w:90, c:0, i:0, t:"00:00:09" },
+        { lv: 3, req: "大溶鉱炉 Lv.9", m:0, w:400, c:0, i:0, t:"00:00:45" },
+        { lv: 4, req: "大溶鉱炉 Lv.9", m:0, w:900, c:180, i:0, t:"00:02:15" },
+        { lv: 5, req: "大溶鉱炉 Lv.9", m:0, w:3800, c:760, i:0, t:"00:04:30" },
+        { lv: 6, req: "大溶鉱炉 Lv.9", m:0, w:9600, c:1900, i:480, t:"00:09:00" },
+        { lv: 7, req: "大溶鉱炉 Lv.9", m:0, w:34000, c:6900, i:1700, t:"00:18:00" },
+        { lv: 8, req: "大溶鉱炉 Lv.9", m:0, w:63000, c:12000, i:3100, t:"00:27:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.9", m:0, w:130000, c:26000, i:6500, t:"00:40:30" },
+        { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:230000, c:46000, i:11000, t:"00:54:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11", m:280000, w:280000, c:57000, i:14000, t:"01:07:30" },
+        { lv: 12, req: "大溶鉱炉 Lv.12", m:370000, w:370000, c:74000, i:18000, t:"01:21:00" },
+        { lv: 13, req: "大溶鉱炉 Lv.13", m:520000, w:520000, c:100000, i:26000, t:"01:39:00" },
+        { lv: 14, req: "大溶鉱炉 Lv.14", m:690000, w:690000, c:130000, i:34000, t:"02:06:00" },
+        { lv: 15, req: "大溶鉱炉 Lv.15", m:1000000, w:1000000, c:200000, i:51000, t:"02:42:00" },
+        { lv: 16, req: "大溶鉱炉 Lv.16", m:1300000, w:1300000, c:260000, i:65000, t:"04:34:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17", m:2000000, w:2000000, c:400000, i:100000, t:"05:29:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18", m:2700000, w:2700000, c:550000, i:130000, t:"06:35:00" },
+        { lv: 19, req: "大溶鉱炉 Lv.19", m:3400000, w:3400000, c:69000, i:170000, t:"09:52:30" },
+        { lv: 20, req: "大溶鉱炉 Lv.20", m:4700000, w:4700000, c:94000, i:230000, t:"12:20:30" },
+        { lv: 21, req: "大溶鉱炉 Lv.21", m:6000000, w:6000000, c:1200000, i:300000, t:"16:02:30" },
+        { lv: 22, req: "大溶鉱炉 Lv.22", m:7900000, w:7900000, c:1500000, i:390000, t:"1d 00:04:00" },
+        { lv: 23, req: "大溶鉱炉 Lv.23", m:9800000, w:9800000, c:1900000, i:490000, t:"1d 09:42:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24", m:13000000, w:13000000, c:2600000, i:660000, t:"1d 23:11:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25", m:17000000, w:17000000, c:3500000, i:890000, t:"2d 18:03:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26", m:23000000, w:23000000, c:4600000, i:1100000, t:"3d 03:57:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27", m:32000000, w:32000000, c:6500000, i:1600000, t:"3d 19:09:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28", m:43000000, w:43000000, c:8700000, i:2100000, t:"4d 08:49:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29", m:54000000, w:54000000, c:10000000, i:2700000, t:"5d 00:33:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30", m:66000000, w:66000000, c:13000000, i:3300000, t:"6d 00:40:00" }
+    ];
+
+    // 9. 城壁
+    const dataWall = [
+        { lv: 2, req: "大溶鉱炉 Lv.7", m:0, w:5300, c:1000, i:0, t:"00:00:10" },
+            { lv: 3, req: "大溶鉱炉 Lv.10", m:0, w:88000, c:17000, i:4400, t:"00:21:30" },
+            { lv: 4, req: "大溶鉱炉 Lv.13", m:420000, w:420000, c:84000, i:21000, t:"01:04:30" },
+            { lv: 5, req: "大溶鉱炉 Lv.16", m:1400000, w:1400000, c:290000, i:74000, t:"03:39:00" },
+            { lv: 6, req: "大溶鉱炉 Lv.20", m:5300000, w:5300000, c:1000000, i:260000, t:"09:52:30" },
+            { lv: 7, req: "大溶鉱炉 Lv.24", m:15000000, w:15000000, c:3000000, i:750000, t:"1d 13:44:00" },
+            { lv: 8, req: "大溶鉱炉 Lv.27", m:37000000, w:37000000, c:7400000, i:1800000, t:"3d 00:55:00" },
+            { lv: 9, req: "大溶鉱炉 Lv.29", m:61000000, w:61000000, c:12000000, i:3000000, t:"4d 00:26:00" },
+            { lv: 10, req: "大溶鉱炉 Lv.30", m:75000000, w:75000000, c:15000000, i:3700000, t:"4d 19:44:00" }
+        ];
+
+    // 10. 軍医所
+    const dataHospital = [
+        { lv: 1, req: "大溶鉱炉 Lv.8", m:0, w:0, c:0, i:0, t:"00:00:02" },
+        { lv: 2, req: "大溶鉱炉 Lv.8", m:0, w:100, c:0, i:0, t:"00:00:09" },
+        { lv: 3, req: "大溶鉱炉 Lv.8", m:0, w:460, c:0, i:0, t:"00:00:40" },
+        { lv: 4, req: "大溶鉱炉 Lv.8", m:0, w:1000, c:205, i:0, t:"00:02:05" },
+        { lv: 5, req: "大溶鉱炉 Lv.8", m:0, w:4300, c:865, i:0, t:"00:04:10" },
+        { lv: 6, req: "大溶鉱炉 Lv.8", m:0, w:10000, c:2100, i:545, t:"00:08:20" },
+        { lv: 7, req: "大溶鉱炉 Lv.8", m:0, w:39000, c:7800, i:1900, t:"00:16:30" },
+        { lv: 8, req: "大溶鉱炉 Lv.8", m:0, w:72000, c:14000, i:3600, t:"00:25:00" },
+        { lv: 9, req: "大溶鉱炉 Lv.9", m:0, w:140000, c:29000, i:7400, t:"00:37:30" },
+        { lv: 10, req: "大溶鉱炉 Lv.10", m:0, w:260000, c:52000, i:13000, t:"00:50:00" },
+        { lv: 11, req: "大溶鉱炉 Lv.11", m:320000, w:320000, c:65000, i:16000, t:"01:03:00" },
+        { lv: 12, req: "大溶鉱炉 Lv.12", m:420000, w:420000, c:84000, i:21000, t:"01:15:30" },
+        { lv: 13, req: "大溶鉱炉 Lv.13", m:590000, w:590000, c:110000, i:29000, t:"01:32:00" },
+        { lv: 14, req: "大溶鉱炉 Lv.14", m:780000, w:780000, c:150000, i:39000, t:"01:57:30" },
+        { lv: 15, req: "大溶鉱炉 Lv.15", m:1100000, w:1100000, c:230000, i:58000, t:"02:31:00" },
+        { lv: 16, req: "大溶鉱炉 Lv.16", m:1400000, w:1400000, c:290000, i:74000, t:"04:16:00" },
+        { lv: 17, req: "大溶鉱炉 Lv.17", m:2300000, w:2300000, c:460000, i:100000, t:"05:07:00" },
+        { lv: 18, req: "大溶鉱炉 Lv.18", m:3100000, w:3100000, c:620000, i:150000, t:"06:08:30" },
+        { lv: 19, req: "大溶鉱炉 Lv.19", m:3900000, w:3900000, c:780000, i:190000, t:"09:13:00" },
+        { lv: 20, req: "大溶鉱炉 Lv.20", m:5300000, w:5300000, c:1000000, i:260000, t:"11:31:00" },
+        { lv: 21, req: "大溶鉱炉 Lv.21", m:6800000, w:6800000, c:1300000, i:340000, t:"14:58:30" },
+        { lv: 22, req: "大溶鉱炉 Lv.22", m:9000000, w:9000000, c:1800000, i:450000, t:"22:28:00" },
+        { lv: 23, req: "大溶鉱炉 Lv.23", m:11000000, w:11000000, c:2200000, i:560000, t:"1d 07:27:00" },
+        { lv: 24, req: "大溶鉱炉 Lv.24", m:15000000, w:15000000, c:3000000, i:750000, t:"1d 20:02:00" },
+        { lv: 25, req: "大溶鉱炉 Lv.25", m:20000000, w:20000000, c:4000000, i:1000000, t:"2d 13:39:00" },
+        { lv: 26, req: "大溶鉱炉 Lv.26", m:26000000, w:26000000, c:5200000, i:1300000, t:"2d 22:54:00" },
+        { lv: 27, req: "大溶鉱炉 Lv.27", m:37000000, w:37000000, c:7400000, i:1800000, t:"3d 13:04:00" },
+        { lv: 28, req: "大溶鉱炉 Lv.28", m:49000000, w:49000000, c:9900000, i:2400000, t:"4d 01:50:00" },
+        { lv: 29, req: "大溶鉱炉 Lv.29", m:61000000, w:61000000, c:12000000, i:3000000, t:"4d 16:31:00" },
+        { lv: 30, req: "大溶鉱炉 Lv.30", m:75000000, w:75000000, c:15000000, i:3700000, t:"5d 15:01:00" }
+    ];
+    
+    // --- FIRE CRYSTAL DATA DEFINITION ---
+    // Columns: id, label, req, m(Meat), w(Wood), c(Coal), i(Iron), fc(Fire Crystal), rfc(Refined Fire Crystal), t(Time)
+
+    const dataFurnaceCrystal = [
+        // Lv.30 -> FC1
+        { id: "30-1", label: "Lv.30-1", req: "大使館30/研究所30", m: 67000000, w: 67000000, c: 13000000, i: 3300000, fc: 132, rfc: 0, t: "7d 00:00:00" },
+        { id: "30-2", label: "Lv.30-2", req: "大使館30/研究所30", m: 67000000, w: 67000000, c: 13000000, i: 3300000, fc: 132, rfc: 0, t: "7d 00:00:00" },
+        { id: "30-3", label: "Lv.30-3", req: "大使館30/研究所30", m: 67000000, w: 67000000, c: 13000000, i: 3300000, fc: 132, rfc: 0, t: "7d 00:00:00" },
+        { id: "30-4", label: "Lv.30-4", req: "大使館30/研究所30", m: 67000000, w: 67000000, c: 13000000, i: 3300000, fc: 132, rfc: 0, t: "7d 00:00:00" },
+        { id: "fc1",  label: "火晶1",   req: "大使館30/研究所30", m: 67000000, w: 67000000, c: 13000000, i: 3300000, fc: 132, rfc: 0, t: "7d 00:00:00" },
+
+        // FC1 -> FC2
+        { id: "fc1-1", label: "火晶1-1", req: "大使館火晶1/槍兵火晶1", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 158, rfc: 0, t: "9d 00:00:00" },
+        { id: "fc1-2", label: "火晶1-2", req: "大使館火晶1/槍兵火晶1", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 158, rfc: 0, t: "9d 00:00:00" },
+        { id: "fc1-3", label: "火晶1-3", req: "大使館晶1/槍兵晶1", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 158, rfc: 0, t: "9d 00:00:00" },
+        { id: "fc1-4", label: "火晶1-4", req: "大使館火晶1/槍兵火晶1", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 158, rfc: 0, t: "9d 00:00:00" },
+        { id: "fc2",   label: "火晶2",   req: "大使館火晶1/槍兵火晶1", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 158, rfc: 0, t: "9d 00:00:00" },
+
+        // FC2 -> FC3
+        { id: "fc2-1", label: "火晶2-1", req: "大使館火晶2/槍兵火晶2", m: 79000000, w: 79000000, c: 15000000, i: 3900000, fc: 238, rfc: 0, t: "11d 00:00:00" },
+        { id: "fc2-2", label: "火晶2-2", req: "大使館火晶2/槍兵火晶2", m: 79000000, w: 79000000, c: 15000000, i: 3900000, fc: 238, rfc: 0, t: "11d 00:00:00" },
+        { id: "fc2-3", label: "火晶2-3", req: "大使館火晶2/槍兵火晶2", m: 79000000, w: 79000000, c: 15000000, i: 3900000, fc: 238, rfc: 0, t: "11d 00:00:00" },
+        { id: "fc2-4", label: "火晶2-4", req: "大使館火晶2/槍兵火晶2", m: 79000000, w: 79000000, c: 15000000, i: 3900000, fc: 238, rfc: 0, t: "11d 00:00:00" },
+        { id: "fc3",   label: "火晶3",   req: "大使館火晶2/槍兵火晶2", m: 79000000, w: 79000000, c: 15000000, i: 3900000, fc: 238, rfc: 0, t: "11d 00:00:00" },
+
+        // FC3 -> FC4
+        { id: "fc3-1", label: "火晶3-1", req: "大使館火晶3/弓兵火晶3", m: 82000000, w: 82000000, c: 16000000, i: 4100000, fc: 280, rfc: 0, t: "12d 00:00:00" },
+        { id: "fc3-2", label: "火晶3-2", req: "大使館火晶3/弓兵火晶3", m: 82000000, w: 82000000, c: 16000000, i: 4100000, fc: 280, rfc: 0, t: "12d 00:00:00" },
+        { id: "fc3-3", label: "火晶3-3", req: "大使館火晶3/弓兵火晶3", m: 82000000, w: 82000000, c: 16000000, i: 4100000, fc: 280, rfc: 0, t: "12d 00:00:00" },
+        { id: "fc3-4", label: "火晶3-4", req: "大使館火晶3/弓兵火晶3", m: 82000000, w: 82000000, c: 16000000, i: 4100000, fc: 280, rfc: 0, t: "12d 00:00:00" },
+        { id: "fc4",   label: "火晶4",   req: "大使館火晶3/弓兵火晶3", m: 82000000, w: 82000000, c: 16000000, i: 4100000, fc: 280, rfc: 0, t: "12d 00:00:00" },
+
+        // FC4 -> FC5
+        { id: "fc4-1", label: "火晶4-1", req: "大使館火晶4/槍兵火晶4", m: 84000000, w: 84000000, c: 16000000, i: 4200000, fc: 335, rfc: 0, t: "14d 00:00:00" },
+        { id: "fc4-2", label: "火晶4-2", req: "大使館火晶4/槍兵火晶4", m: 84000000, w: 84000000, c: 16000000, i: 4200000, fc: 335, rfc: 0, t: "14d 00:00:00" },
+        { id: "fc4-3", label: "火晶4-3", req: "大使館火晶4/槍兵火晶4", m: 84000000, w: 84000000, c: 16000000, i: 4200000, fc: 335, rfc: 0, t: "14d 00:00:00" },
+        { id: "fc4-4", label: "火晶4-4", req: "大使館火晶4/槍兵火晶4", m: 84000000, w: 84000000, c: 16000000, i: 4200000, fc: 335, rfc: 0, t: "14d 00:00:00" },
+        { id: "fc5",   label: "火晶5",   req: "大使館火晶4/槍兵火晶4", m: 84000000, w: 84000000, c: 16000000, i: 4200000, fc: 335, rfc: 0, t: "14d 00:00:00" },
+
+        // FC5 -> FC6 (Requires Refined Fire Crystal)
+        { id: "fc5-1", label: "火晶5-1", req: "大使館火晶5/盾兵火晶5", m: 96000000, w: 96000000, c: 19000000, i: 4800000, fc: 200, rfc: 10, t: "15d 00:00:00" },
+        { id: "fc5-2", label: "火晶5-2", req: "大使館火晶5/盾兵火晶5", m: 96000000, w: 96000000, c: 19000000, i: 4800000, fc: 200, rfc: 10, t: "15d 00:00:00" },
+        { id: "fc5-3", label: "火晶5-3", req: "大使館火晶5/盾兵火晶5", m: 96000000, w: 96000000, c: 19000000, i: 4800000, fc: 200, rfc: 10, t: "15d 00:00:00" },
+        { id: "fc5-4", label: "火晶5-4", req: "大使館火晶5/盾兵火晶5", m: 96000000, w: 96000000, c: 19000000, i: 4800000, fc: 200, rfc: 10, t: "15d 00:00:00" },
+        { id: "fc6",   label: "火晶6",   req: "大使館火晶5/盾兵火晶5", m: 96000000, w: 96000000, c: 19000000, i: 4800000, fc: 100, rfc: 20, t: "15d 00:00:00" },
+
+        // FC6 -> FC7
+        { id: "fc6-1", label: "火晶6-1", req: "大使館火晶6/弓兵火晶6", m: 100000000, w: 100000000, c: 21000000, i: 5400000, fc: 240, rfc: 15, t: "18d 00:00:00" },
+        { id: "fc6-2", label: "火晶6-2", req: "大使館火晶6/弓兵火晶6", m: 100000000, w: 100000000, c: 21000000, i: 5400000, fc: 240, rfc: 15, t: "18d 00:00:00" },
+        { id: "fc6-3", label: "火晶6-3", req: "大使館火晶6/弓兵火晶6", m: 100000000, w: 100000000, c: 21000000, i: 5400000, fc: 240, rfc: 15, t: "18d 00:00:00" },
+        { id: "fc6-4", label: "火晶6-4", req: "大使館火晶6/弓兵火晶6", m: 100000000, w: 100000000, c: 21000000, i: 5400000, fc: 240, rfc: 15, t: "18d 00:00:00" },
+        { id: "fc7",   label: "火晶7",   req: "大使館火晶6/弓兵火晶6", m: 100000000, w: 100000000, c: 21000000, i: 5400000, fc: 120, rfc: 30, t: "18d 00:00:00" },
+
+        // FC7 -> FC8
+        { id: "fc7-1", label: "火晶7-1", req: "大使館火晶7/槍兵火晶7", m: 130000000, w: 130000000, c: 26000000, i: 6600000, fc: 240, rfc: 20, t: "20d 00:00:00" },
+        { id: "fc7-2", label: "火晶7-2", req: "大使館火晶7/槍兵火晶7", m: 130000000, w: 130000000, c: 26000000, i: 6600000, fc: 240, rfc: 20, t: "20d 00:00:00" },
+        { id: "fc7-3", label: "火晶7-3", req: "大使館火晶7/槍兵火晶7", m: 130000000, w: 130000000, c: 26000000, i: 6600000, fc: 240, rfc: 20, t: "20d 00:00:00" },
+        { id: "fc7-4", label: "火晶7-4", req: "大使館火晶7/槍兵火晶7", m: 130000000, w: 130000000, c: 26000000, i: 6600000, fc: 240, rfc: 20, t: "20d 00:00:00" },
+        { id: "fc8",   label: "火晶8",   req: "大使館火晶7/槍兵火晶7", m: 130000000, w: 130000000, c: 26000000, i: 6600000, fc: 120, rfc: 40, t: "20d 00:00:00" },
+
+        // FC8 -> FC9
+        { id: "fc8-1", label: "火晶8-1", req: "大使館火晶8/盾兵火晶8", m: 140000000, w: 140000000, c: 29000000, i: 7200000, fc: 280, rfc: 30, t: "13d 00:00:00" },
+        { id: "fc8-2", label: "火晶8-2", req: "大使館火晶8/盾兵火晶8", m: 140000000, w: 140000000, c: 29000000, i: 7200000, fc: 280, rfc: 30, t: "13d 00:00:00" },
+        { id: "fc8-3", label: "火晶8-3", req: "大使館火晶8/盾兵火晶8", m: 140000000, w: 140000000, c: 29000000, i: 7200000, fc: 280, rfc: 30, t: "13d 00:00:00" },
+        { id: "fc8-4", label: "火晶8-4", req: "大使館火晶8/盾兵火晶8", m: 140000000, w: 140000000, c: 29000000, i: 7200000, fc: 280, rfc: 30, t: "13d 00:00:00" },
+        { id: "fc9", label: "火晶9", req: "大使館火晶8/盾兵火晶8", m: 140000000, w: 140000000, c: 29000000, i: 7200000, fc: 140, rfc: 60, t: "13d 00:00:00" },
+        
+        // FC9 -> FC10
+        { id: "fc9-1", label: "火晶9-1", req: "大使館火晶9/弓兵火晶9", m: 160000000, w: 160000000, c: 33000000, i: 8400000, fc: 350, rfc: 70, t: "20d 00:00:00" },
+        { id: "fc9-2", label: "火晶9-2", req: "大使館火晶9/弓兵火晶9", m: 160000000, w: 160000000, c: 33000000, i: 8400000, fc: 350, rfc: 70, t: "20d 00:00:00" },
+        { id: "fc9-3", label: "火晶9-3", req: "大使館火晶9/弓兵火晶9", m: 160000000, w: 160000000, c: 33000000, i: 8400000, fc: 350, rfc: 70, t: "20d 00:00:00" },
+        { id: "fc9-4", label: "火晶9-4", req: "大使館火晶9/弓兵火晶9", m: 160000000, w: 160000000, c: 33000000, i: 8400000, fc: 350, rfc: 70, t: "20d 00:00:00" },
+        { id: "fc10", label: "火晶10", req: "大使館火晶9/弓兵火晶9", m: 160000000, w: 160000000, c: 33000000, i: 8400000, fc: 175, rfc: 140, t: "20d 00:00:00" }
+    ];
+
+    // 火晶大使館 (Embassy - Fire Crystal)
+    const dataEmbassyCrystal = [
+        // Lv.30 -> FC1
+        { id: "30-1", label: "Lv.30-1", req: "大溶鉱炉火晶1", m: 13000000, w: 13000000, c: 2700000, i: 679000, fc: 33, rfc: 0, t: "4d 14:52:00" },
+        { id: "30-2", label: "Lv.30-2", req: "大溶鉱炉火晶1", m: 13000000, w: 13000000, c: 2700000, i: 670000, fc: 33, rfc: 0, t: "4d 14:52:00" },
+        { id: "30-3", label: "Lv.30-3", req: "大溶鉱炉火晶1", m: 13000000, w: 13000000, c: 2700000, i: 670000, fc: 33, rfc: 0, t: "4d 14:52:00" },
+        { id: "30-4", label: "Lv.30-4", req: "大溶鉱炉火晶1", m: 13000000, w: 13000000, c: 2700000, i: 670000, fc: 33, rfc: 0, t: "4d 14:52:00" },
+        { id: "fc1",  label: "火晶1",   req: "大溶鉱炉火晶1", m: 13000000, w: 13000000, c: 2700000, i: 670000, fc: 33, rfc: 0, t: "4d 14:52:00" },
+
+        // FC1 -> FC2
+        { id: "fc1-1", label: "火晶1-1", req: "大溶鉱炉火晶2", m: 14000000, w: 14000000, c: 2900000, i: 720000, fc: 39, rfc: 0, t: "5d 22:33:00" },
+        { id: "fc1-2", label: "火晶1-2", req: "大溶鉱炉火晶2", m: 14000000, w: 14000000, c: 2900000, i: 720000, fc: 39, rfc: 0, t: "5d 22:33:00" },
+        { id: "fc1-3", label: "火晶1-3", req: "大溶鉱炉火晶2", m: 14000000, w: 14000000, c: 2900000, i: 720000, fc: 39, rfc: 0, t: "5d 22:33:00" },
+        { id: "fc1-4", label: "火晶1-4", req: "大溶鉱炉火晶2", m: 14000000, w: 14000000, c: 2900000, i: 720000, fc: 39, rfc: 0, t: "5d 22:33:00" },
+        { id: "fc2",   label: "火晶2",   req: "大溶鉱炉火晶2", m: 14000000, w: 14000000, c: 2900000, i: 1000000, fc: 39, rfc: 0, t: "5d 22:33:00" },
+
+        // FC2 -> FC3
+        { id: "fc2-1", label: "火晶2-1", req: "大溶鉱炉火晶3", m: 15000000, w: 15000000, c: 3100000, i: 790000, fc: 59, rfc: 0, t: "7d 06:14:00" },
+        { id: "fc2-2", label: "火晶2-2", req: "大溶鉱炉火晶3", m: 15000000, w: 15000000, c: 3100000, i: 790000, fc: 59, rfc: 0, t: "7d 06:14:00" },
+        { id: "fc2-3", label: "火晶2-3", req: "大溶鉱炉火晶3", m: 15000000, w: 15000000, c: 3100000, i: 790000, fc: 59, rfc: 0, t: "7d 06:14:00" },
+        { id: "fc2-4", label: "火晶2-4", req: "大溶鉱炉火晶3", m: 15000000, w: 15000000, c: 3100000, i: 790000, fc: 59, rfc: 0, t: "7d 06:14:00" },
+        { id: "fc3",   label: "火晶3",   req: "大溶鉱炉火晶3", m: 15000000, w: 15000000, c: 3100000, i: 790000, fc: 59, rfc: 0, t: "7d 06:14:00" },
+
+        // FC3 -> FC4
+        { id: "fc3-1", label: "火晶3-1", req: "大溶鉱炉火晶4", m: 16000000, w: 16000000, c: 3200000, i: 820000, fc: 70, rfc: 0, t: "7d 22:04:00" },
+        { id: "fc3-2", label: "火晶3-2", req: "大溶鉱炉火晶4", m: 16000000, w: 16000000, c: 3200000, i: 820000, fc: 70, rfc: 0, t: "7d 22:04:00" },
+        { id: "fc3-3", label: "火晶3-3", req: "大溶鉱炉火晶4", m: 16000000, w: 16000000, c: 3200000, i: 820000, fc: 70, rfc: 0, t: "7d 22:04:00" },
+        { id: "fc3-4", label: "火晶3-4", req: "大溶鉱炉火晶4", m: 16000000, w: 16000000, c: 3200000, i: 820000, fc: 70, rfc: 0, t: "7d 22:04:00" },
+        { id: "fc4",   label: "火晶4",   req: "大溶鉱炉火晶4", m: 16000000, w: 16000000, c: 3200000, i: 820000, fc: 70, rfc: 0, t: "7d 22:04:00" },
+
+        // FC4 -> FC5
+        { id: "fc4-1", label: "火晶4-1", req: "大溶鉱炉火晶5", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 83, rfc: 0, t: "9d 05:45:00" },
+        { id: "fc4-2", label: "火晶4-2", req: "大溶鉱炉火晶5", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 83, rfc: 0, t: "9d 05:45:00" },
+        { id: "fc4-3", label: "火晶4-3", req: "大溶鉱炉火晶5", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 83, rfc: 0, t: "9d 05:45:00" },
+        { id: "fc4-4", label: "火晶4-4", req: "大溶鉱炉火晶5", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 83, rfc: 0, t: "9d 05:45:00" },
+        { id: "fc5",   label: "火晶5",   req: "大溶鉱炉火晶5", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 83, rfc: 0, t: "9d 05:45:00" },
+
+        // FC5 -> FC6 (Requires RFC)
+        { id: "fc5-1", label: "火晶5-1", req: "大溶鉱炉火晶6", m: 19000000, w: 19000000, c: 3800000, i: 960000, fc: 50, rfc: 2, t: "9d 21:36:00" },
+        { id: "fc5-2", label: "火晶5-2", req: "大溶鉱炉火晶6", m: 19000000, w: 19000000, c: 3800000, i: 960000, fc: 50, rfc: 2, t: "9d 21:36:00" },
+        { id: "fc5-3", label: "火晶5-3", req: "大溶鉱炉火晶6", m: 19000000, w: 19000000, c: 3800000, i: 960000, fc: 50, rfc: 2, t: "9d 21:36:00" },
+        { id: "fc5-4", label: "火晶5-4", req: "大溶鉱炉火晶6", m: 19000000, w: 19000000, c: 3800000, i: 960000, fc: 50, rfc: 2, t: "9d 21:36:00" },
+        { id: "fc6",   label: "火晶6",   req: "大溶鉱炉火晶6", m: 19000000, w: 19000000, c: 3800000, i: 960000, fc: 25, rfc: 5, t: "9d 21:36:00" },
+
+        // FC6 -> FC7
+        { id: "fc6-1", label: "火晶6-1", req: "大溶鉱炉火晶7", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 60, rfc: 3, t: "11d 21:07:00" },
+        { id: "fc6-2", label: "火晶6-2", req: "大溶鉱炉火晶7", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 60, rfc: 3, t: "11d 21:07:00" },
+        { id: "fc6-3", label: "火晶6-3", req: "大溶鉱炉火晶7", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 60, rfc: 3, t: "11d 21:07:00" },
+        { id: "fc6-4", label: "火晶6-4", req: "大溶鉱炉火晶7", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 60, rfc: 3, t: "11d 21:07:00" },
+        { id: "fc7",   label: "火晶7",   req: "大溶鉱炉火晶7", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 30, rfc: 7, t: "11d 21:07:00" },
+
+        // FC7 -> FC8
+        { id: "fc7-1", label: "火晶7-1", req: "大溶鉱炉火晶8", m: 26000000, w: 26000000, c: 5300000, i: 1300000, fc: 60, rfc: 5, t: "13d 04:48:00" },
+        { id: "fc7-2", label: "火晶7-2", req: "大溶鉱炉火晶8", m: 26000000, w: 26000000, c: 5300000, i: 1300000, fc: 60, rfc: 5, t: "13d 04:48:00" },
+        { id: "fc7-3", label: "火晶7-3", req: "大溶鉱炉火晶8", m: 26000000, w: 26000000, c: 5300000, i: 1300000, fc: 60, rfc: 5, t: "13d 04:48:00" },
+        { id: "fc7-4", label: "火晶7-4", req: "大溶鉱炉火晶8", m: 26000000, w: 26000000, c: 5300000, i: 1300000, fc: 60, rfc: 5, t: "13d 04:48:00" },
+        { id: "fc8",   label: "火晶8",   req: "大溶鉱炉火晶8", m: 26000000, w: 26000000, c: 5300000, i: 1300000, fc: 30, rfc: 11, t: "13d 04:48:00" },
+
+        // FC8 -> FC9
+        { id: "fc8-1", label: "火晶8-1", req: "大溶鉱炉火晶9", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 70, rfc: 7, t: "8d 13:55:00" },
+        { id: "fc8-2", label: "火晶8-2", req: "大溶鉱炉火晶9", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 70, rfc: 7, t: "8d 13:55:00" },
+        { id: "fc8-3", label: "火晶8-3", req: "大溶鉱炉火晶9", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 70, rfc: 7, t: "8d 13:55:00" },
+        { id: "fc8-4", label: "火晶8-4", req: "大溶鉱炉火晶9", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 70, rfc: 7, t: "8d 13:55:00" },
+        { id: "fc9", label: "火晶9", req: "大溶鉱炉火晶9", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 35, rfc: 15, t: "8d 13:55:00" },
+
+            // FC9 -> FC10
+            { id: "fc9-1", label: "火晶9-1", req: "大溶鉱炉火晶10", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 87, rfc: 17, t: "13d 04:48:00" },
+        { id: "fc9-2", label: "火晶9-2", req: "大溶鉱炉火晶10", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 87, rfc: 17, t: "13d 04:48:00" },
+        { id: "fc9-3", label: "火晶9-3", req: "大溶鉱炉火晶10", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 87, rfc: 17, t: "13d 04:48:00" },
+        { id: "fc9-4", label: "火晶9-4", req: "大溶鉱炉火晶10", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 87, rfc: 17, t: "13d 04:48:00" },
+        { id: "fc10", label: "火晶10", req: "大溶鉱炉火晶10", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 43, rfc: 35, t: "13d 04:48:00" }
+    ];
+
+    // 火晶司令部 (Command Center - Fire Crystal)
+    const dataCommandCrystal = [
+        // 30 -> FC1
+        { id: "30-1", label: "Lv.30-1", req: "大使館火晶1/大溶鉱炉火晶1", m: 20000000, w: 20000000, c: 4000000, i: 1000000, fc: 26, rfc: 0, t: "20:09:30" },
+        { id: "30-2", label: "Lv.30-2", req: "大使館火晶1/大溶鉱炉火晶1", m: 20000000, w: 20000000, c: 4000000, i: 1000000, fc: 26, rfc: 0, t: "20:09:30" },
+        { id: "30-3", label: "Lv.30-3", req: "大使館火晶1/大溶鉱炉火晶1", m: 20000000, w: 20000000, c: 4000000, i: 1000000, fc: 26, rfc: 0, t: "20:09:30" },
+        { id: "30-4", label: "Lv.30-4", req: "大使館火晶1/大溶鉱炉火晶1", m: 20000000, w: 20000000, c: 4000000, i: 1000000, fc: 26, rfc: 0, t: "20:09:30" },
+        { id: "fc1",  label: "火晶1",   req: "大使館火晶1/大溶鉱炉火晶1", m: 20000000, w: 20000000, c: 4000000, i: 1000000, fc: 26, rfc: 0, t: "20:09:30" },
+
+        // FC1 -> FC2
+        { id: "fc1-1", label: "火晶1-1", req: "大使館火晶2/大溶鉱炉火晶2", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 31, rfc: 0, t: "1d 01:55:00" },
+        { id: "fc1-2", label: "火晶1-2", req: "大使館火晶2/大溶鉱炉火晶2", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 31, rfc: 0, t: "1d 01:55:00" },
+        { id: "fc1-3", label: "火晶1-3", req: "大使館火晶2/大溶鉱炉火晶2", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 31, rfc: 0, t: "1d 01:55:00" },
+        { id: "fc1-4", label: "火晶1-4", req: "大使館火晶2/大溶鉱炉火晶2", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 31, rfc: 0, t: "1d 01:55:00" },
+        { id: "fc2",   label: "火晶2",   req: "大使館火晶2/大溶鉱炉火晶2", m: 21000000, w: 21000000, c: 4300000, i: 1000000, fc: 31, rfc: 0, t: "1d 01:55:00" },
+
+        // FC2 -> FC3
+        { id: "fc2-1", label: "火晶2-1", req: "大使館火晶3/大溶鉱炉火晶3", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 47, rfc: 0, t: "1d 07:40:00" },
+        { id: "fc2-2", label: "火晶2-2", req: "大使館火晶3/大溶鉱炉火晶3", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 47, rfc: 0, t: "1d 07:40:00" },
+        { id: "fc2-3", label: "火晶2-3", req: "大使館火晶3/大溶鉱炉火晶3", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 47, rfc: 0, t: "1d 07:40:00" },
+        { id: "fc2-4", label: "火晶2-4", req: "大使館火晶3/大溶鉱炉火晶3", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 47, rfc: 0, t: "1d 07:40:00" },
+        { id: "fc3",   label: "火晶3",   req: "大使館火晶3/大溶鉱炉火晶3", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 47, rfc: 0, t: "1d 07:40:00" },
+
+        // FC3 -> FC4
+        { id: "fc3-1", label: "火晶3-1", req: "大使館火晶4/大溶鉱炉火晶4", m: 24000000, w: 24000000, c: 4900000, i: 1200000, fc: 56, rfc: 0, t: "1d 10:33:00" },
+        { id: "fc3-2", label: "火晶3-2", req: "大使館火晶4/大溶鉱炉火晶4", m: 24000000, w: 24000000, c: 4900000, i: 1200000, fc: 56, rfc: 0, t: "1d 10:33:00" },
+        { id: "fc3-3", label: "火晶3-3", req: "大使館火晶4/大溶鉱炉火晶4", m: 24000000, w: 24000000, c: 4900000, i: 1200000, fc: 56, rfc: 0, t: "1d 10:33:00" },
+        { id: "fc3-4", label: "火晶3-4", req: "大使館火晶4/大溶鉱炉火晶4", m: 24000000, w: 24000000, c: 4900000, i: 1200000, fc: 56, rfc: 0, t: "1d 10:33:00" },
+        { id: "fc4",   label: "火晶4",   req: "大使館火晶4/大溶鉱炉火晶4", m: 24000000, w: 24000000, c: 4900000, i: 1200000, fc: 56, rfc: 0, t: "1d 10:33:00" },
+
+        // FC4 -> FC5
+        { id: "fc4-1", label: "火晶4-1", req: "大使館火晶5/大溶鉱炉火晶5", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 67, rfc: 0, t: "1d 16:31:00" },
+        { id: "fc4-2", label: "火晶4-2", req: "大使館火晶5/大溶鉱炉火晶5", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 67, rfc: 0, t: "1d 16:31:00" },
+        { id: "fc4-3", label: "火晶4-3", req: "大使館火晶5/大溶鉱炉火晶5", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 67, rfc: 0, t: "1d 16:31:00" },
+        { id: "fc4-4", label: "火晶4-4", req: "大使館火晶5/大溶鉱炉火晶5", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 67, rfc: 0, t: "1d 16:31:00" },
+        { id: "fc5",   label: "火晶5",   req: "大使館火晶5/大溶鉱炉火晶5", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 67, rfc: 0, t: "1d 16:31:00" },
+
+        // FC5 -> FC6
+        { id: "fc5-1", label: "火晶5-1", req: "大使館火晶6/大溶鉱炉火晶6", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 40, rfc: 2, t: "1d 19:12:00" },
+        { id: "fc5-2", label: "火晶5-2", req: "大使館火晶6/大溶鉱炉火晶6", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 40, rfc: 2, t: "1d 19:12:00" },
+        { id: "fc5-3", label: "火晶5-3", req: "大使館火晶6/大溶鉱炉火晶6", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 40, rfc: 2, t: "1d 19:12:00" },
+        { id: "fc5-4", label: "火晶5-4", req: "大使館火晶6/大溶鉱炉火晶6", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 40, rfc: 2, t: "1d 19:12:00" },
+        { id: "fc6",   label: "火晶6",   req: "大使館火晶6/大溶鉱炉火晶6", m: 29000000, w: 29000000, c: 5800000, i: 1400000, fc: 20, rfc: 4, t: "1d 19:12:00" },
+
+        // FC6 -> FC7
+        { id: "fc6-1", label: "火晶6-1", req: "大使館火晶7/大溶鉱炉火晶7", m: 32000000, w: 32000000, c: 6500000, i: 1500000, fc: 48, rfc: 3, t: "2d 01:30:00" },
+        { id: "fc6-2", label: "火晶6-2", req: "大使館火晶7/大溶鉱炉火晶7", m: 32000000, w: 32000000, c: 6500000, i: 1500000, fc: 48, rfc: 3, t: "2d 01:30:00" },
+        { id: "fc6-3", label: "火晶6-3", req: "大使館火晶7/大溶鉱炉火晶7", m: 32000000, w: 32000000, c: 6500000, i: 1500000, fc: 48, rfc: 3, t: "2d 01:30:00" },
+        { id: "fc6-4", label: "火晶6-4", req: "大使館火晶7/大溶鉱炉火晶7", m: 32000000, w: 32000000, c: 6500000, i: 1500000, fc: 48, rfc: 3, t: "2d 01:30:00" },
+        { id: "fc7",   label: "火晶7",   req: "大使館火晶7/大溶鉱炉火晶7", m: 32000000, w: 32000000, c: 6500000, i: 1500000, fc: 24, rfc: 6, t: "2d 01:30:00" },
+
+        // FC7 -> FC8
+        { id: "fc7-1", label: "火晶7-1", req: "大使館火晶8/大溶鉱炉火晶8", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 48, rfc: 4, t: "2d 09:36:00" },
+        { id: "fc7-2", label: "火晶7-2", req: "大使館火晶8/大溶鉱炉火晶8", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 48, rfc: 4, t: "2d 09:36:00" },
+        { id: "fc7-3", label: "火晶7-3", req: "大使館火晶8/大溶鉱炉火晶8", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 48, rfc: 4, t: "2d 09:36:00" },
+        { id: "fc7-4", label: "火晶7-4", req: "大使館火晶8/大溶鉱炉火晶8", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 48, rfc: 4, t: "2d 09:36:00" },
+        { id: "fc8",   label: "火晶8",   req: "大使館火晶8/大溶鉱炉火晶8", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 24, rfc: 8, t: "2d 09:36:00" },
+
+        // FC8 -> FC9
+        { id: "fc8-1", label: "火晶8-1", req: "大使館火晶9/大溶鉱炉火晶9", m: 43000000, w: 43000000, c: 8700000, i: 2100000, fc: 56, rfc: 6, t: "1d 13:26:00" },
+        { id: "fc8-2", label: "火晶8-2", req: "大使館火晶9/大溶鉱炉火晶9", m: 43000000, w: 43000000, c: 8700000, i: 2100000, fc: 56, rfc: 6, t: "1d 13:26:00" },
+        { id: "fc8-3", label: "火晶8-3", req: "大使館火晶9/大溶鉱炉火晶9", m: 43000000, w: 43000000, c: 8700000, i: 2100000, fc: 56, rfc: 6, t: "1d 13:26:00" },
+        { id: "fc8-4", label: "火晶8-4", req: "大使館火晶9/大溶鉱炉火晶9", m: 43000000, w: 43000000, c: 8700000, i: 2100000, fc: 56, rfc: 6, t: "1d 13:26:00" },
+        { id: "fc9", label: "火晶9", req: "大使館火晶9/大溶鉱炉火晶9", m: 43000000, w: 43000000, c: 8700000, i: 2100000, fc: 28, rfc: 12, t: "1d 13:26:00" },
+
+        // FC9 -> FC10
+        { id: "fc9-1", label: "火晶9-1", req: "大使館火晶10/大溶鉱炉火晶10", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 70, rfc: 14, t: "2d 09:36:00" },
+        { id: "fc9-2", label: "火晶9-2", req: "大使館火晶10/大溶鉱炉火晶10", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 70, rfc: 14, t: "2d 09:36:00" },
+        { id: "fc9-3", label: "火晶9-3", req: "大使館火晶10/大溶鉱炉火晶10", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 70, rfc: 14, t: "2d 09:36:00" },
+        { id: "fc9-4", label: "火晶9-4", req: "大使館火晶10/大溶鉱炉火晶10", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 70, rfc: 14, t: "2d 09:36:00" },
+        { id: "fc10", label: "火晶10", req: "大使館火晶10/大溶鉱炉火晶10", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 35, rfc: 28, t: "2d 09:36:00" }       
+    ];
+
+    // 火晶兵舎 (Camp - Fire Crystal)
+    const dataCampCrystal = [
+        // 30 -> FC1
+        { id: "30-1", label: "Lv.30-1", req: "大溶鉱炉火晶1", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 59, rfc: 0, t: "1d 01:12:00" },
+        { id: "30-2", label: "Lv.30-2", req: "大溶鉱炉火晶1", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 59, rfc: 0, t: "1d 01:12:00" },
+        { id: "30-3", label: "Lv.30-3", req: "大溶鉱炉火晶1", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 59, rfc: 0, t: "1d 01:12:00" },
+        { id: "30-4", label: "Lv.30-4", req: "大溶鉱炉火晶1", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 59, rfc: 0, t: "1d 01:12:00" },
+        { id: "fc1",  label: "火晶1",   req: "大溶鉱炉火晶1", m: 23000000, w: 23000000, c: 4700000, i: 1100000, fc: 59, rfc: 0, t: "1d 01:12:00" },
+
+        // FC1 -> FC2
+        { id: "fc1-1", label: "火晶1-1", req: "大溶鉱炉火晶2", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 71, rfc: 0, t: "1d 08:24:00" },
+        { id: "fc1-2", label: "火晶1-2", req: "大溶鉱炉火晶2", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 71, rfc: 0, t: "1d 08:24:00" },
+        { id: "fc1-3", label: "火晶1-3", req: "大溶鉱炉火晶2", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 71, rfc: 0, t: "1d 08:24:00" },
+        { id: "fc1-4", label: "火晶1-4", req: "大溶鉱炉火晶2", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 71, rfc: 0, t: "1d 08:24:00" },
+        { id: "fc2", label: "火晶2", req: "大溶鉱炉火晶2", m: 25000000, w: 25000000, c: 5000000, i: 1200000, fc: 71, rfc: 0, t: "1d 08:24:00" },
+
+        // FC2 -> FC3
+        { id: "fc2-1", label: "火晶2-1", req: "大溶鉱炉火晶3", m: 27000000, w: 27000000, c: 5500000, i: 1300000, fc: 107, rfc: 0, t: "1d 15:36:00" },
+        { id: "fc2-2", label: "火晶2-2", req: "大溶鉱炉火晶3", m: 27000000, w: 27000000, c: 5500000, i: 1300000, fc: 107, rfc: 0, t: "1d 15:36:00" },
+        { id: "fc2-3", label: "火晶2-3", req: "大溶鉱炉火晶3", m: 27000000, w: 27000000, c: 5500000, i: 1300000, fc: 107, rfc: 0, t: "1d 15:36:00" },
+        { id: "fc2-4", label: "火晶2-4", req: "大溶鉱炉火晶3", m: 27000000, w: 27000000, c: 5500000, i: 1300000, fc: 107, rfc: 0, t: "1d 15:36:00" },
+        { id: "fc3", label: "火晶3", req: "大溶鉱炉火晶3", m: 27000000, w: 27000000, c: 5500000, i: 1300000, fc: 107, rfc: 0, t: "1d 15:36:00" },
+
+        // FC3 -> FC4
+        { id: "fc3-1", label: "火晶3-1", req: "大溶鉱炉火晶4", m: 28000000, w: 28000000, c: 5700000, i: 1400000, fc: 126, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc3-2", label: "火晶3-2", req: "大溶鉱炉火晶4", m: 28000000, w: 28000000, c: 5700000, i: 1400000, fc: 126, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc3-3", label: "火晶3-3", req: "大溶鉱炉火晶4", m: 28000000, w: 28000000, c: 5700000, i: 1400000, fc: 126, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc3-4", label: "火晶3-4", req: "大溶鉱炉火晶4", m: 28000000, w: 28000000, c: 5700000, i: 1400000, fc: 126, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc4", label: "火晶4", req: "大溶鉱炉火晶4", m: 28000000, w: 28000000, c: 5700000, i: 1400000, fc: 126, rfc: 0, t: "1d 19:12:00" },
+
+        // FC4 -> FC5
+        { id: "fc4-1", label: "火晶4-1", req: "大溶鉱炉火晶5", m: 29000000, w: 29000000, c: 5900000, i: 1400000, fc: 150, rfc: 0, t: "2d 02:24:00" },
+        { id: "fc4-2", label: "火晶4-2", req: "大溶鉱炉火晶5", m: 29000000, w: 29000000, c: 5900000, i: 1400000, fc: 150, rfc: 0, t: "2d 02:24:00" },
+        { id: "fc4-3", label: "火晶4-3", req: "大溶鉱炉火晶5", m: 29000000, w: 29000000, c: 5900000, i: 1400000, fc: 150, rfc: 0, t: "2d 02:24:00" },
+        { id: "fc4-4", label: "火晶4-4", req: "大溶鉱炉火晶5", m: 29000000, w: 29000000, c: 5900000, i: 1400000, fc: 150, rfc: 0, t: "2d 02:24:00" },
+        { id: "fc5", label: "火晶5", req: "大溶鉱炉火晶5", m: 29000000, w: 29000000, c: 5900000, i: 1400000, fc: 150, rfc: 0, t: "2d 02:24:00" },
+
+        // FC5 -> FC6
+        { id: "fc5-1", label: "火晶5-1", req: "大溶鉱炉火晶6", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 90, rfc: 4, t: "2d 06:00:00" },
+        { id: "fc5-2", label: "火晶5-2", req: "大溶鉱炉火晶6", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 90, rfc: 4, t: "2d 06:00:00" },
+        { id: "fc5-3", label: "火晶5-3", req: "大溶鉱炉火晶6", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 90, rfc: 4, t: "2d 06:00:00" },
+        { id: "fc5-4", label: "火晶5-4", req: "大溶鉱炉火晶6", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 90, rfc: 4, t: "2d 06:00:00" },
+        { id: "fc6", label: "火晶6", req: "大溶鉱炉火晶6", m: 33000000, w: 33000000, c: 6700000, i: 1600000, fc: 45, rfc: 9, t: "2d 06:00:00" },
+
+        // FC6 -> FC7
+        { id: "fc6-1", label: "火晶6-1", req: "大溶鉱炉火晶7", m: 38000000, w: 38000000, c: 7600000, i: 1900000, fc: 108, rfc: 6, t: "2d 16:48:00" },
+        { id: "fc6-2", label: "火晶6-2", req: "大溶鉱炉火晶7", m: 38000000, w: 38000000, c: 7600000, i: 1900000, fc: 108, rfc: 6, t: "2d 16:48:00" },
+        { id: "fc6-3", label: "火晶6-3", req: "大溶鉱炉火晶7", m: 38000000, w: 38000000, c: 7600000, i: 1900000, fc: 108, rfc: 6, t: "2d 16:48:00" },
+        { id: "fc6-4", label: "火晶6-4", req: "大溶鉱炉火晶7", m: 38000000, w: 38000000, c: 7600000, i: 1900000, fc: 108, rfc: 6, t: "2d 16:48:00" },
+        { id: "fc7", label: "火晶7", req: "大溶鉱炉火晶7", m: 38000000, w: 38000000, c: 7600000, i: 1900000, fc: 54, rfc: 13, t: "2d 16:48:00" },
+
+        // FC7 -> FC8
+        { id: "fc7-1", label: "火晶7-1", req: "大溶鉱炉火晶8", m: 46000000, w: 46000000, c: 9300000, i: 2300000, fc: 108, rfc: 9, t: "3d 00:00:00" },
+        { id: "fc7-2", label: "火晶7-2", req: "大溶鉱炉火晶8", m: 46000000, w: 46000000, c: 9300000, i: 2300000, fc: 108, rfc: 9, t: "3d 00:00:00" },
+        { id: "fc7-3", label: "火晶7-3", req: "大溶鉱炉火晶8", m: 46000000, w: 46000000, c: 9300000, i: 2300000, fc: 108, rfc: 9, t: "3d 00:00:00" },
+        { id: "fc7-4", label: "火晶7-4", req: "大溶鉱炉火晶8", m: 46000000, w: 46000000, c: 9300000, i: 2300000, fc: 108, rfc: 9, t: "3d 00:00:00" },
+        { id: "fc8", label: "火晶8", req: "大溶鉱炉火晶8", m: 46000000, w: 46000000, c: 9300000, i: 2300000, fc: 54, rfc: 19, t: "3d 00:00:00" },
+ 
+        // FC8 -> FC9
+        { id: "fc8-1", label: "火晶8-1", req: "大溶鉱炉火晶9", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 126, rfc: 13, t: "1d 22:48:00" },
+        { id: "fc8-2", label: "火晶8-2", req: "大溶鉱炉火晶9", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 126, rfc: 13, t: "1d 22:48:00" },
+        { id: "fc8-3", label: "火晶8-3", req: "大溶鉱炉火晶9", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 126, rfc: 13, t: "1d 22:48:00" },
+        { id: "fc8-4", label: "火晶8-4", req: "大溶鉱炉火晶9", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 126, rfc: 13, t: "1d 22:48:00" },
+        { id: "fc9", label: "火晶9", req: "大溶鉱炉火晶9", m: 50000000, w: 50000000, c: 10000000, i: 2500000, fc: 63, rfc: 27, t: "1d 22:48:00" },
+
+        // FC9 -> FC10
+        { id: "fc9-1", label: "火晶9-1", req: "大溶鉱炉火晶10", m: 59000000, w: 59000000, c: 11000000, i: 2900000, fc: 157, rfc: 31, t: "3d 00:00:00" },
+        { id: "fc9-2", label: "火晶9-2", req: "大溶鉱炉火晶10", m: 59000000, w: 59000000, c: 11000000, i: 2900000, fc: 157, rfc: 31, t: "3d 00:00:00" },
+        { id: "fc9-3", label: "火晶9-3", req: "大溶鉱炉火晶10", m: 59000000, w: 59000000, c: 11000000, i: 2900000, fc: 157, rfc: 31, t: "3d 00:00:00" },
+        { id: "fc9-4", label: "火晶9-4", req: "大溶鉱炉火晶10", m: 59000000, w: 59000000, c: 11000000, i: 2900000, fc: 157, rfc: 31, t: "3d 00:00:00" },
+        { id: "fc10", label: "火晶10", req: "大溶鉱炉火晶10", m: 59000000, w: 59000000, c: 11000000, i: 2900000, fc: 78, rfc: 63, t: "3d 00:00:00" }
+
+    ];
+
+    // 戦争学園 (War Academy - Fire Crystal)
+    const dataAcademyCrystal = [
+        // FC1 (Base -> 1-1)
+        { id: "fc1-1", label: "火晶1-1", req: "大溶鉱炉火晶2", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 71, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc1-2", label: "火晶1-2", req: "大溶鉱炉火晶2", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 71, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc1-3", label: "火晶1-3", req: "大溶鉱炉火晶2", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 71, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc1-4", label: "火晶1-4", req: "大溶鉱炉火晶2", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 71, rfc: 0, t: "1d 19:12:00" },
+        { id: "fc2",   label: "火晶2",   req: "大溶鉱炉火晶2", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 71, rfc: 0, t: "1d 19:12:00" },
+
+        // FC2 -> FC3
+        { id: "fc2-1", label: "火晶2-1", req: "大溶鉱炉火晶3", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 107, rfc: 0, t: "2d 04:48:00" },
+        { id: "fc2-2", label: "火晶2-2", req: "大溶鉱炉火晶3", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 107, rfc: 0, t: "2d 04:48:00" },
+        { id: "fc2-3", label: "火晶2-3", req: "大溶鉱炉火晶3", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 107, rfc: 0, t: "2d 04:48:00" },
+        { id: "fc2-4", label: "火晶2-4", req: "大溶鉱炉火晶3", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 107, rfc: 0, t: "2d 04:48:00" },
+        { id: "fc3",   label: "火晶3",   req: "大溶鉱炉火晶3", m: 39000000, w: 39000000, c: 7900000, i: 1900000, fc: 107, rfc: 0, t: "2d 04:48:00" },
+
+        // FC3 -> FC4
+        { id: "fc3-1", label: "火晶3-1", req: "大溶鉱炉火晶4", m: 41000000, w: 41000000, c: 8200000, i: 2000000, fc: 126, rfc: 0, t: "2d 09:36:00" },
+        { id: "fc3-2", label: "火晶3-2", req: "大溶鉱炉火晶4", m: 41000000, w: 41000000, c: 8200000, i: 2000000, fc: 126, rfc: 0, t: "2d 09:36:00" },
+        { id: "fc3-3", label: "火晶3-3", req: "大溶鉱炉火晶4", m: 41000000, w: 41000000, c: 8200000, i: 2000000, fc: 126, rfc: 0, t: "2d 09:36:00" },
+        { id: "fc3-4", label: "火晶3-4", req: "大溶鉱炉火晶4", m: 41000000, w: 41000000, c: 8200000, i: 2000000, fc: 126, rfc: 0, t: "2d 09:36:00" },
+        { id: "fc4",   label: "火晶4",   req: "大溶鉱炉火晶4", m: 41000000, w: 41000000, c: 8200000, i: 2000000, fc: 126, rfc: 0, t: "2d 09:36:00" },
+
+        // FC4 -> FC5
+        { id: "fc4-1", label: "火晶4-1", req: "大溶鉱炉火晶5", m: 42000000, w: 42000000, c: 8200000, i: 2100000, fc: 150, rfc: 0, t: "2d 19:12:00" },
+        { id: "fc4-2", label: "火晶4-2", req: "大溶鉱炉火晶5", m: 42000000, w: 42000000, c: 8200000, i: 2100000, fc: 150, rfc: 0, t: "2d 19:12:00" },
+        { id: "fc4-3", label: "火晶4-3", req: "大溶鉱炉火晶5", m: 42000000, w: 42000000, c: 8200000, i: 2100000, fc: 150, rfc: 0, t: "2d 19:12:00" },
+        { id: "fc4-4", label: "火晶4-4", req: "大溶鉱炉火晶5", m: 42000000, w: 42000000, c: 8200000, i: 2100000, fc: 150, rfc: 0, t: "2d 19:12:00" },
+        { id: "fc5",   label: "火晶5",   req: "大溶鉱炉火晶5", m: 42000000, w: 42000000, c: 8200000, i: 2100000, fc: 150, rfc: 0, t: "2d 19:12:00" },
+
+        // FC5 -> FC6
+        { id: "fc5-1", label: "火晶5-1", req: "大溶鉱炉火晶6", m: 48000000, w: 48000000, c: 9600000, i: 2400000, fc: 90, rfc: 4, t: "3d 00:00:00" },
+        { id: "fc5-2", label: "火晶5-2", req: "大溶鉱炉火晶6", m: 48000000, w: 48000000, c: 9600000, i: 2400000, fc: 90, rfc: 4, t: "3d 00:00:00" },
+        { id: "fc5-3", label: "火晶5-3", req: "大溶鉱炉火晶6", m: 48000000, w: 48000000, c: 9600000, i: 2400000, fc: 90, rfc: 4, t: "3d 00:00:00" },
+        { id: "fc5-4", label: "火晶5-4", req: "大溶鉱炉火晶6", m: 48000000, w: 48000000, c: 9600000, i: 2400000, fc: 90, rfc: 4, t: "3d 00:00:00" },
+        { id: "fc6",   label: "火晶6",   req: "大溶鉱炉火晶6", m: 48000000, w: 48000000, c: 9600000, i: 2400000, fc: 45, rfc: 9, t: "3d 00:00:00" },
+
+        // FC6 -> FC7
+        { id: "fc6-1", label: "火晶6-1", req: "大溶鉱炉火晶7", m: 54000000, w: 54000000, c: 10000000, i: 2700000, fc: 108, rfc: 6, t: "3d 14:24:00" },
+        { id: "fc6-2", label: "火晶6-2", req: "大溶鉱炉火晶7", m: 54000000, w: 54000000, c: 10000000, i: 2700000, fc: 108, rfc: 6, t: "3d 14:24:00" },
+        { id: "fc6-3", label: "火晶6-3", req: "大溶鉱炉火晶7", m: 54000000, w: 54000000, c: 10000000, i: 2700000, fc: 108, rfc: 6, t: "3d 14:24:00" },
+        { id: "fc6-4", label: "火晶6-4", req: "大溶鉱炉火晶7", m: 54000000, w: 54000000, c: 10000000, i: 2700000, fc: 108, rfc: 6, t: "3d 14:24:00" },
+        { id: "fc7",   label: "火晶7",   req: "大溶鉱炉火晶7", m: 54000000, w: 54000000, c: 10000000, i: 2700000, fc: 54, rfc: 13, t: "3d 14:24:00" },
+
+        // FC7 -> FC8
+        { id: "fc7-1", label: "火晶7-1", req: "大溶鉱炉火晶8", m: 66000000, w: 66000000, c: 13000000, i: 3300000, fc: 108, rfc: 9, t: "4d 00:00:00" },
+        { id: "fc7-2", label: "火晶7-2", req: "大溶鉱炉火晶8", m: 66000000, w: 66000000, c: 13000000, i: 3300000, fc: 108, rfc: 9, t: "4d 00:00:00" },
+        { id: "fc7-3", label: "火晶7-3", req: "大溶鉱炉火晶8", m: 66000000, w: 66000000, c: 13000000, i: 3300000, fc: 108, rfc: 9, t: "4d 00:00:00" },
+        { id: "fc7-4", label: "火晶7-4", req: "大溶鉱炉火晶8", m: 66000000, w: 66000000, c: 13000000, i: 3300000, fc: 108, rfc: 9, t: "4d 00:00:00" },
+        { id: "fc8",   label: "火晶8",   req: "大溶鉱炉火晶8", m: 66000000, w: 66000000, c: 13000000, i: 3300000, fc: 108, rfc: 9, t: "4d 00:00:00" }, // Image shows FC:108, RFC:9 for Lv.8
+
+        // FC8 -> FC9
+        { id: "fc8-1", label: "火晶8-1", req: "大溶鉱炉火晶9", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 126, rfc: 13, t: "2d 14:24:00" },
+        { id: "fc8-2", label: "火晶8-2", req: "大溶鉱炉火晶9", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 126, rfc: 13, t: "2d 14:24:00" },
+        { id: "fc8-3", label: "火晶8-3", req: "大溶鉱炉火晶9", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 126, rfc: 13, t: "2d 14:24:00" },
+        { id: "fc8-4", label: "火晶8-4", req: "大溶鉱炉火晶9", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 126, rfc: 13, t: "2d 14:24:00" },
+        { id: "fc9",   label: "火晶9",   req: "大溶鉱炉火晶9", m: 72000000, w: 72000000, c: 14000000, i: 3600000, fc: 63, rfc: 27, t: "2d 14:24:00" },
+
+        // FC9 -> FC10
+        { id: "fc9-1", label: "火晶9-1", req: "大溶鉱炉火晶10", m: 84000000, w: 84000000, c: 16000000, i: 7200000, fc: 157, rfc: 31, t: "4d 00:00:00" },
+        { id: "fc9-2", label: "火晶9-2", req: "大溶鉱炉火晶10", m: 84000000, w: 84000000, c: 16000000, i: 7200000, fc: 157, rfc: 31, t: "4d 00:00:00" },
+        { id: "fc9-3", label: "火晶9-3", req: "大溶鉱炉火晶10", m: 84000000, w: 84000000, c: 16000000, i: 7200000, fc: 157, rfc: 31, t: "4d 00:00:00" },
+        { id: "fc9-4", label: "火晶9-4", req: "大溶鉱炉火晶10", m: 84000000, w: 84000000, c: 16000000, i: 7200000, fc: 157, rfc: 31, t: "4d 00:00:00" },
+        { id: "fc10",  label: "火晶10",  req: "大溶鉱炉火晶10", m: 84000000, w: 84000000, c: 16000000, i: 7200000, fc: 78, rfc: 63, t: "4d 00:00:00" }
+    ];
+
+    // 軍医所 (Hospital - Fire Crystal)
+    const dataHospitalCrystal = [
+        // 30 -> FC1
+        { id: "30-1", label: "Lv.30-1", req: "大溶鉱炉火晶1", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 26, rfc: 0, t: "23:31:00" },
+        { id: "30-2", label: "Lv.30-2", req: "大溶鉱炉火晶1", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 26, rfc: 0, t: "23:31:00" },
+        { id: "30-3", label: "Lv.30-3", req: "大溶鉱炉火晶1", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 26, rfc: 0, t: "23:31:00" },
+        { id: "30-4", label: "Lv.30-4", req: "大溶鉱炉火晶1", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 26, rfc: 0, t: "23:31:00" },
+        { id: "fc1", label: "火晶1", req: "大溶鉱炉火晶1", m: 16000000, w: 16000000, c: 3300000, i: 840000, fc: 26, rfc: 0, t: "23:31:00" },
+
+        // FC1 -> FC2
+        { id: "fc1-1", label: "火晶1-1", req: "大溶鉱炉火晶2", m: 18000000, w: 18000000, c: 3600000, i: 900000, fc: 31, rfc: 0, t: "1d 06:14:00" },
+        { id: "fc1-2", label: "火晶1-2", req: "大溶鉱炉火晶2", m: 18000000, w: 18000000, c: 3600000, i: 900000, fc: 31, rfc: 0, t: "1d 06:14:00" },
+        { id: "fc1-3", label: "火晶1-3", req: "大溶鉱炉火晶2", m: 18000000, w: 18000000, c: 3600000, i: 900000, fc: 31, rfc: 0, t: "1d 06:14:00" },
+        { id: "fc1-4", label: "火晶1-4", req: "大溶鉱炉火晶2", m: 18000000, w: 18000000, c: 3600000, i: 900000, fc: 31, rfc: 0, t: "1d 06:14:00" },
+        { id: "fc2", label: "火晶2", req: "大溶鉱炉火晶2", m: 18000000, w: 18000000, c: 3600000, i: 900000, fc: 31, rfc: 0, t: "1d 06:14:00" },
+
+        // FC2 -> FC3
+        { id: "fc2-1", label: "火晶2-1", req: "大溶鉱炉火晶3", m: 19000000, w: 19000000, c: 3900000, i: 990000, fc: 47, rfc: 0, t: "1d 12:57:00" },
+        { id: "fc2-2", label: "火晶2-2", req: "大溶鉱炉火晶3", m: 19000000, w: 19000000, c: 3900000, i: 990000, fc: 47, rfc: 0, t: "1d 12:57:00" },
+        { id: "fc2-3", label: "火晶2-3", req: "大溶鉱炉火晶3", m: 19000000, w: 19000000, c: 3900000, i: 990000, fc: 47, rfc: 0, t: "1d 12:57:00" },
+        { id: "fc2-4", label: "火晶2-4", req: "大溶鉱炉火晶3", m: 19000000, w: 19000000, c: 3900000, i: 990000, fc: 47, rfc: 0, t: "1d 12:57:00" },
+        { id: "fc3", label: "火晶3", req: "大溶鉱炉火晶3", m: 19000000, w: 19000000, c: 3900000, i: 990000, fc: 47, rfc: 0, t: "1d 12:57:00" },
+
+        // FC3 -> FC4
+        { id: "fc3-1", label: "火晶3-1", req: "大溶鉱炉火晶4", m: 20000000, w: 20000000, c: 4100000, i: 1000000, fc: 56, rfc: 0, t: "1d 16:19:00" },
+        { id: "fc3-2", label: "火晶3-2", req: "大溶鉱炉火晶4", m: 20000000, w: 20000000, c: 4100000, i: 1000000, fc: 56, rfc: 0, t: "1d 16:19:00" },
+        { id: "fc3-3", label: "火晶3-3", req: "大溶鉱炉火晶4", m: 20000000, w: 20000000, c: 4100000, i: 1000000, fc: 56, rfc: 0, t: "1d 16:19:00" },
+        { id: "fc3-4", label: "火晶3-4", req: "大溶鉱炉火晶4", m: 20000000, w: 20000000, c: 4100000, i: 1000000, fc: 56, rfc: 0, t: "1d 16:19:00" },
+        { id: "fc4", label: "火晶4", req: "大溶鉱炉火晶4", m: 20000000, w: 20000000, c: 4100000, i: 1000000, fc: 56, rfc: 0, t: "1d 16:19:00" },
+
+        // FC4 -> FC5
+        { id: "fc4-1", label: "火晶4-1", req: "大溶鉱炉火晶5", m: 21000000, w: 21000000, c: 4200000, i: 1000000, fc: 67, rfc: 0, t: "1d 23:02:00" },
+        { id: "fc4-2", label: "火晶4-2", req: "大溶鉱炉火晶5", m: 21000000, w: 21000000, c: 4200000, i: 1000000, fc: 67, rfc: 0, t: "1d 23:02:00" },
+        { id: "fc4-3", label: "火晶4-3", req: "大溶鉱炉火晶5", m: 21000000, w: 21000000, c: 4200000, i: 1000000, fc: 67, rfc: 0, t: "1d 23:02:00" },
+        { id: "fc4-4", label: "火晶4-4", req: "大溶鉱炉火晶5", m: 21000000, w: 21000000, c: 4200000, i: 1000000, fc: 67, rfc: 0, t: "1d 23:02:00" },
+        { id: "fc5", label: "火晶5", req: "大溶鉱炉火晶5", m: 21000000, w: 21000000, c: 4200000, i: 1000000, fc: 67, rfc: 0, t: "1d 23:02:00" },
+
+        // FC5 -> FC6
+        { id: "fc5-1", label: "火晶5-1", req: "大溶鉱炉火晶6", m: 24000000, w: 24000000, c: 4800000, i: 1200000, fc: 40, rfc: 2, t: "2d 02:24:00" },
+        { id: "fc5-2", label: "火晶5-2", req: "大溶鉱炉火晶6", m: 24000000, w: 24000000, c: 4800000, i: 1200000, fc: 40, rfc: 2, t: "2d 02:24:00" },
+        { id: "fc5-3", label: "火晶5-3", req: "大溶鉱炉火晶6", m: 24000000, w: 24000000, c: 4800000, i: 1200000, fc: 40, rfc: 2, t: "2d 02:24:00" },
+        { id: "fc5-4", label: "火晶5-4", req: "大溶鉱炉火晶6", m: 24000000, w: 24000000, c: 4800000, i: 1200000, fc: 40, rfc: 2, t: "2d 02:24:00" },
+        { id: "fc6", label: "火晶6", req: "大溶鉱炉火晶6", m: 24000000, w: 24000000, c: 4800000, i: 1200000, fc: 20, rfc: 4, t: "2d 02:24:00" },
+
+        // FC6 -> FC7
+        { id: "fc6-1", label: "火晶6-1", req: "大溶鉱炉火晶7", m: 27000000, w: 27000000, c: 5400000, i: 1300000, fc: 48, rfc: 3, t: "2d 12:28:00" },
+        { id: "fc6-2", label: "火晶6-2", req: "大溶鉱炉火晶7", m: 27000000, w: 27000000, c: 5400000, i: 1300000, fc: 48, rfc: 3, t: "2d 12:28:00" },
+        { id: "fc6-3", label: "火晶6-3", req: "大溶鉱炉火晶7", m: 27000000, w: 27000000, c: 5400000, i: 1300000, fc: 48, rfc: 3, t: "2d 12:28:00" },
+        { id: "fc6-4", label: "火晶6-4", req: "大溶鉱炉火晶7", m: 27000000, w: 27000000, c: 5400000, i: 1300000, fc: 48, rfc: 3, t: "2d 12:28:00" },
+        { id: "fc7", label: "火晶7", req: "大溶鉱炉火晶7", m: 27000000, w: 27000000, c: 5400000, i: 1300000, fc: 24, rfc: 6, t: "2d 12:28:00" },
+
+        // FC7 -> FC8
+        { id: "fc7-1", label: "火晶7-1", req: "大溶鉱炉火晶8", m: 33000000, w: 33000000, c: 6600000, i: 1600000, fc: 48, rfc: 4, t: "2d 19:12:00" },
+        { id: "fc7-2", label: "火晶7-2", req: "大溶鉱炉火晶8", m: 33000000, w: 33000000, c: 6600000, i: 1600000, fc: 48, rfc: 4, t: "2d 19:12:00" },
+        { id: "fc7-3", label: "火晶7-3", req: "大溶鉱炉火晶8", m: 33000000, w: 33000000, c: 6600000, i: 1600000, fc: 48, rfc: 4, t: "2d 19:12:00" },
+        { id: "fc7-4", label: "火晶7-4", req: "大溶鉱炉火晶8", m: 33000000, w: 33000000, c: 6600000, i: 1600000, fc: 48, rfc: 4, t: "2d 19:12:00" },
+        { id: "fc8", label: "火晶8", req: "大溶鉱炉火晶8", m: 33000000, w: 33000000, c: 6600000, i: 1600000, fc: 24, rfc: 8, t: "2d 19:12:00" },
+
+        // FC8 -> FC9
+        { id: "fc8-1", label: "火晶8-1", req: "大溶鉱炉火晶9", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 56, rfc: 6, t: "1d 19:30:00" },
+        { id: "fc8-2", label: "火晶8-2", req: "大溶鉱炉火晶9", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 56, rfc: 6, t: "1d 19:30:00" },
+        { id: "fc8-3", label: "火晶8-3", req: "大溶鉱炉火晶9", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 56, rfc: 6, t: "1d 19:30:00" },
+        { id: "fc8-4", label: "火晶8-4", req: "大溶鉱炉火晶9", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 56, rfc: 6, t: "1d 19:30:00" },
+        { id: "fc9", label: "火晶9", req: "大溶鉱炉火晶9", m: 36000000, w: 36000000, c: 7200000, i: 1800000, fc: 28, rfc: 12, t: "1d 19:30:00" },
+
+        // FC9 -> FC10
+        { id: "fc9-1", label: "火晶9-1", req: "大溶鉱炉火晶10", m: 42000000, w: 42000000, c: 8400000, i: 2100000, fc: 70, rfc: 14, t: "2d 19:12:00" },
+        { id: "fc9-2", label: "火晶9-2", req: "大溶鉱炉火晶10", m: 42000000, w: 42000000, c: 8400000, i: 2100000, fc: 70, rfc: 14, t: "2d 19:12:00" },
+        { id: "fc9-3", label: "火晶9-3", req: "大溶鉱炉火晶10", m: 42000000, w: 42000000, c: 8400000, i: 2100000, fc: 70, rfc: 14, t: "2d 19:12:00" },
+        { id: "fc9-4", label: "火晶9-4", req: "大溶鉱炉火晶10", m: 42000000, w: 42000000, c: 8400000, i: 2100000, fc: 70, rfc: 14, t: "2d 19:12:00" },
+        { id: "fc10", label: "火晶10", req: "大溶鉱炉火晶10", m: 42000000, w: 42000000, c: 8400000, i: 2100000, fc: 35, rfc: 28, t: "2d 19:12:00" }
+
+    ];
+    
+    const buildings = {
+        '大溶鉱炉': dataFurnace,
+        '大使館': dataEmbassy,
+        '司令部': dataCommand,
+        '盾兵の兵舎': dataInfantry,
+        '槍兵の兵舎': dataLancer,
+        '弓兵の兵舎': dataMarksman,
+        '科学研究所': dataResearch,
+        '倉庫': dataWarehouse,
+        '城壁': dataWall,
+        '軍医所': dataHospital
+    };
+
+    const fcBuildings = {
+        '大溶鉱炉': dataFurnaceCrystal,
+        '大使館': dataEmbassyCrystal,
+        '司令部': dataCommandCrystal,
+        '盾兵の兵舎': dataCampCrystal,
+        '槍兵の兵舎': dataCampCrystal,
+        '弓兵の兵舎': dataCampCrystal,
+        '戦争学園': dataAcademyCrystal,
+        '軍医所': dataHospitalCrystal
+    };
+
+    // --- DOM ELEMENTS ---
+    const dom = {
+        building: document.getElementById('buildingSelect'),
+        currentLv: document.getElementById('currentLevel'),
+        targetLv: document.getElementById('targetLevel'),
+        resMeat: document.getElementById('resMeat'),
+        resWood: document.getElementById('resWood'),
+        resCoal: document.getElementById('resCoal'),
+        resIron: document.getElementById('resIron'),
+        resTime: document.getElementById('resTime'),
+        resReq: document.getElementById('resReq'),
+        reqBox: document.getElementById('reqBox'),
+        resultContainer: document.getElementById('resultContainer'),
+        tabMilitary: document.getElementById('tab-military'),
+        tabFireCrystal: document.getElementById('tab-fireCrystal')
+    };
+
+    const fcDom = {
+        building: document.getElementById('fcBuildingSelect'),
+        currentLv: document.getElementById('fcCurrentLevel'),
+        targetLv: document.getElementById('fcTargetLevel'),
+        resCrystal: document.getElementById('resFcCrystal'),
+        resRefined: document.getElementById('resFcRefined'),
+        rowRefined: document.getElementById('rowRfc'),
+        resMeat: document.getElementById('resFcMeat'),
+        resWood: document.getElementById('resFcWood'),
+        resCoal: document.getElementById('resFcCoal'),
+        resIron: document.getElementById('resFcIron'),
+        resTime: document.getElementById('resFcTime'),
+        resReq: document.getElementById('resFcReq'),
+        reqBox: document.getElementById('reqFcBox'),
+        resultContainer: document.getElementById('fcResultContainer')
+    };
+
+    // --- INITIALIZATION ---
+    function init() {
+        // Populate building select (Military)
+        for (const name in buildings) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            dom.building.appendChild(opt);
+        }
+        updateLevelOptions();
+
+        // Populate building select (Fire Crystal)
+        for (const name in fcBuildings) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            fcDom.building.appendChild(opt);
+        }
+        updateFcLevelOptions();
+
+        // Listeners
+        dom.building.addEventListener('change', () => { updateLevelOptions(); hideResults(); });
+        dom.currentLv.addEventListener('change', hideResults);
+        dom.targetLv.addEventListener('change', hideResults);
+
+        fcDom.building.addEventListener('change', () => { updateFcLevelOptions(); hideFcResults(); });
+        fcDom.currentLv.addEventListener('change', hideFcResults);
+        fcDom.targetLv.addEventListener('change', hideFcResults);
+    }
+
+    // --- MILITARY LOGIC ---
+    function updateLevelOptions() {
+        const name = dom.building.value;
+        const data = buildings[name];
+        const currentVal = parseInt(dom.currentLv.value);
+        const targetVal = parseInt(dom.targetLv.value);
+
+        dom.currentLv.innerHTML = '';
+        dom.targetLv.innerHTML = '';
+
+        const maxLv = data[data.length - 1].lv;
+
+        for (let i = 0; i < maxLv; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            dom.currentLv.appendChild(opt);
+        }
+
+        for (let i = 1; i <= maxLv; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            dom.targetLv.appendChild(opt);
+        }
+
+        if (!isNaN(currentVal) && currentVal < maxLv) dom.currentLv.value = currentVal;
+        else dom.currentLv.value = 0;
+
+        if (!isNaN(targetVal) && targetVal <= maxLv && targetVal > 0) dom.targetLv.value = targetVal;
+        else dom.targetLv.value = 1; 
+    }
+
+    function hideResults() {
+        dom.resultContainer.style.display = 'none';
+    }
+
+    // --- 必要条件のフォーマット関数 ---
+    // 入力: "大使館30/研究所30" 
+    // 出力: "大使館 30<br>研究所 30"
+    function formatRequirement(reqString) {
+        if (!reqString || reqString === '-' || reqString === '') return null;
+
+        // 複数の条件がスラッシュ等で区切られている場合に対応
+        const parts = reqString.split('/');
+
+        const formattedParts = parts.map(part => {
+            let s = part.trim();
+            // 「火晶」または「晶」が含まれる場合 -> " 火晶"（スペース空け）に統一
+            if (s.match(/火?晶/)) {
+                // 例: "大使館火晶1" -> "大使館 火晶1"
+                // 例: "槍兵晶1" -> "槍兵 火晶1"
+                return s.replace(/火?晶/, ' 火晶');
+            }
+            // 通常レベルの場合 (数字の前にスペースを入れる) 
+            // 例: "大使館30" -> "大使館 30"
+            return s.replace(/(\D+)(\d+)/, '$1 $2');
+        });
+
+        return formattedParts.join('<br>');
+    }
+    
+    // --- 2. 軍備施設の条件表示フォーマット変更 ---
+    // --- 軍備施設 計算ロジック ---
+    function calculate() {
+        const name = dom.building.value;
+        const data = buildings[name];
+        const current = parseInt(dom.currentLv.value);
+        const target = parseInt(dom.targetLv.value);
+
+        if (target <= current) {
+            alert("目標レベルは現在レベルより高く設定してください");
+            dom.resultContainer.style.display = 'none';
+            return;
+        }
+
+        let totalMeat = 0;
+        let totalWood = 0;
+        let totalCoal = 0;
+        let totalIron = 0;
+        let totalSeconds = 0;
+        let requirements = [];
+
+        // 現在レベルの次の段階から目標レベルまでを加算
+        for (let l = current + 1; l <= target; l++) {
+            const row = data.find(d => d.lv === l);
+            if (row) {
+                totalMeat += row.m;
+                totalWood += row.w;
+                totalCoal += row.c;
+                totalIron += row.i;
+                totalSeconds += parseTime(row.t);
+
+                // 目標レベル到達時の条件を表示
+                if (l === target) {
+                    const formattedReq = formatRequirement(row.req);
+                    if (formattedReq) {
+                        requirements.push(formattedReq);
+                    }
+                }
+            }
+        }
+
+        animateValue(dom.resMeat, totalMeat);
+        animateValue(dom.resWood, totalWood);
+        animateValue(dom.resCoal, totalCoal);
+        animateValue(dom.resIron, totalIron);
+        dom.resTime.textContent = formatTime(totalSeconds);
+
+        if (requirements.length === 0) {
+            dom.reqBox.style.display = 'none';
+        } else {
+            dom.reqBox.style.display = 'block';
+            dom.resReq.innerHTML = requirements.join('<br>');
+        }
+
+        dom.resultContainer.style.display = 'block';
+    }
+
+    // --- FIRE CRYSTAL LOGIC ---
+    // --- 火晶施設 プルダウン更新 ---
+    function updateFcLevelOptions() {
+        const name = fcDom.building.value;
+        const data = fcBuildings[name];
+
+        const currentVal = fcDom.currentLv.value;
+        const targetVal = fcDom.targetLv.value;
+
+        fcDom.currentLv.innerHTML = '';
+        fcDom.targetLv.innerHTML = '';
+
+        // 初期値の設定
+        // 戦争学園の場合: 火晶1 (fc1)
+        // それ以外の場合: Lv.30 (30)
+        let baseText = "Lv.30";
+        let baseValue = "30";
+
+        if (name === '戦争学園') {
+            baseText = "火晶1";
+            baseValue = "fc1"; 
+        }
+
+        const baseOpt = document.createElement('option');
+        baseOpt.value = baseValue;
+        baseOpt.textContent = baseText;
+        fcDom.currentLv.appendChild(baseOpt);
+
+        data.forEach((row, index) => {
+            // 現在レベル: データの最後の要素(最大レベル)は含めない (Max-1)
+            if (index < data.length - 1) {
+                const optC = document.createElement('option');
+                optC.value = row.id;
+                optC.textContent = row.label;
+                fcDom.currentLv.appendChild(optC);
+            }
+
+            // 目標レベル: 全て含める
+            const optT = document.createElement('option');
+            optT.value = row.id;
+            optT.textContent = row.label;
+            fcDom.targetLv.appendChild(optT);
+        });
+
+        // 値の復元またはデフォルト設定
+        fcDom.currentLv.value = baseValue; 
+        if(currentVal && Array.from(fcDom.currentLv.options).some(o => o.value === currentVal)) {
+             fcDom.currentLv.value = currentVal;
+        }
+
+        fcDom.targetLv.value = data[0].id;
+        if(targetVal && Array.from(fcDom.targetLv.options).some(o => o.value === targetVal)) {
+             fcDom.targetLv.value = targetVal;
+        }
+    }
+
+    function hideFcResults() {
+        fcDom.resultContainer.style.display = 'none';
+    }
+
+    // --- 火晶施設 インデックス取得 ---
+    function getFcIndex(name, id) {
+        // ベース値（初期状態）の判定
+        // 戦争学園の "fc1" または 他施設の "30" はデータ配列に含まれないため -1 を返す
+        if (name === '戦争学園' && id === 'fc1') return -1;
+        if (id === "30") return -1;
+
+        const data = fcBuildings[name];
+        return data.findIndex(row => row.id === id);
+    }
+
+    // --- 3. 火晶施設の条件表示フォーマット変更 ---
+    // --- 火晶施設 計算ロジック ---
+    function calculateCrystal() {
+        const name = fcDom.building.value;
+        const data = fcBuildings[name];
+        const currentId = fcDom.currentLv.value;
+        const targetId = fcDom.targetLv.value;
+
+        // nameを引数に追加してインデックスを取得
+        const currentIndex = getFcIndex(name, currentId);
+        const targetIndex = getFcIndex(name, targetId);
+
+        if (targetIndex <= currentIndex) {
+            alert("目標レベルは現在レベルより高く設定してください");
+            fcDom.resultContainer.style.display = 'none';
+            return;
+        }
+
+        let totalMeat = 0;
+        let totalWood = 0;
+        let totalCoal = 0;
+        let totalIron = 0;
+        let totalFc = 0;
+        let totalRfc = 0;
+        let totalSeconds = 0;
+        let requirements = [];
+
+        // 現在の次の段階から目標までループ
+        for (let i = currentIndex + 1; i <= targetIndex; i++) {
+            const row = data[i];
+            totalMeat += row.m;
+            totalWood += row.w;
+            totalCoal += row.c;
+            totalIron += row.i;
+            totalFc += row.fc;
+            totalRfc += (row.rfc || 0);
+            totalSeconds += parseTime(row.t);
+
+            // 目標レベル到達時の条件を取得
+            if (i === targetIndex) {
+                const formattedReq = formatRequirement(row.req);
+                if (formattedReq) {
+                    requirements.push(formattedReq);
+                }
+            }
+        }
+
+        // 結果の描画
+        animateValue(fcDom.resCrystal, totalFc);
+
+        if (totalRfc > 0) {
+            fcDom.rowRefined.style.display = 'flex';
+            animateValue(fcDom.resRefined, totalRfc);
+        } else {
+            fcDom.rowRefined.style.display = 'none';
+        }
+
+        animateValue(fcDom.resMeat, totalMeat);
+        animateValue(fcDom.resWood, totalWood);
+        animateValue(fcDom.resCoal, totalCoal);
+        animateValue(fcDom.resIron, totalIron);
+        fcDom.resTime.textContent = formatTime(totalSeconds);
+
+        if (requirements.length === 0) {
+            fcDom.reqBox.style.display = 'none';
+        } else {
+            fcDom.reqBox.style.display = 'block';
+            fcDom.resReq.innerHTML = requirements.join('<br>');
+        }
+
+        fcDom.resultContainer.style.display = 'block';
+    }
+
+    function animateValue(obj, end) {
+        obj.textContent = formatNumber(end);
+    }
+
+    // --- TAB SWITCHING ---
+    window.switchTab = function(tabName) {
+        const btns = document.querySelectorAll('.tab-btn');
+        btns.forEach(b => b.classList.remove('active'));
+
+        const clickedBtn = document.querySelector(`button[onclick="switchTab('${tabName}')"]`);
+        if(clickedBtn) clickedBtn.classList.add('active');
+
+        if (tabName === 'military') {
+            dom.tabMilitary.style.display = 'block';
+            dom.tabFireCrystal.style.display = 'none';
+        } else {
+            dom.tabMilitary.style.display = 'none';
+            dom.tabFireCrystal.style.display = 'block';
+        }
+    }
+
+    // Start
+    init();
+
+</script>
+
+</body>
+</html>
