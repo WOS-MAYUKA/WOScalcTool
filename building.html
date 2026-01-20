@@ -434,10 +434,10 @@
         const seconds = totalSeconds % 60;
 
         let res = '';
-        if (days > 0) res += `${days}(d) `;
-        if (hours > 0) res += `${hours}(h) `;
-        if (minutes > 0) res += `${minutes}(m) `;
-        if (seconds > 0 || res === '') res += `${seconds}(s)`;
+        if (days > 0) res += `${days}d `;
+        if (hours > 0) res += ` ${hours}h `;
+        if (minutes > 0) res += ` ${minutes}m `;
+        if (seconds > 0 || res === '') res += ` ${seconds}s`;
         return res;
     }
 
