@@ -276,12 +276,12 @@
 
         <div class="flex-row">
             <div class="flex-col">
-                <label for="currentLevel">現在のレベル</label>
+                <label for="currentLevel">現在レベル</label>
                 <select id="currentLevel">
                     </select>
             </div>
             <div class="flex-col">
-                <label for="targetLevel">目標のレベル</label>
+                <label for="targetLevel">目標レベル</label>
                 <select id="targetLevel">
                     </select>
             </div>
@@ -326,12 +326,12 @@
 
         <div class="flex-row">
             <div class="flex-col">
-                <label for="fcCurrentLevel">現在のレベル</label>
+                <label for="fcCurrentLevel">現在レベル</label>
                 <select id="fcCurrentLevel">
                     </select>
             </div>
             <div class="flex-col">
-                <label for="fcTargetLevel">目標のレベル</label>
+                <label for="fcTargetLevel">目標レベル</label>
                 <select id="fcTargetLevel">
                     </select>
             </div>
@@ -443,7 +443,7 @@
 
     function formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toLocaleString();
     }
 
@@ -1279,12 +1279,20 @@
         updateFcLevelOptions();
 
         // Listeners
+        // ★修正: 建物変更時は両方のレベルをリセット
         dom.building.addEventListener('change', () => { updateLevelOptions(); hideResults(); });
-        dom.currentLv.addEventListener('change', hideResults);
+
+        // ★修正: 現在レベル変更時は、目標レベルの選択肢を更新する
+        dom.currentLv.addEventListener('change', () => { updateTargetOptions(); hideResults(); });
+
         dom.targetLv.addEventListener('change', hideResults);
 
+        // FC側も同様
         fcDom.building.addEventListener('change', () => { updateFcLevelOptions(); hideFcResults(); });
-        fcDom.currentLv.addEventListener('change', hideFcResults);
+
+        // ★修正: FC現在レベル変更時に目標レベルを更新
+        fcDom.currentLv.addEventListener('change', () => { updateFcTargetOptions(); hideFcResults(); });
+
         fcDom.targetLv.addEventListener('change', hideFcResults);
     }
 
@@ -1293,13 +1301,10 @@
         const name = dom.building.value;
         const data = buildings[name];
         const currentVal = parseInt(dom.currentLv.value);
-        const targetVal = parseInt(dom.targetLv.value);
 
         dom.currentLv.innerHTML = '';
-        dom.targetLv.innerHTML = '';
-
+        // 現在レベルのプルダウン生成（最大レベル-1 まで）
         const maxLv = data[data.length - 1].lv;
-
         for (let i = 0; i < maxLv; i++) {
             const opt = document.createElement('option');
             opt.value = i;
@@ -1307,18 +1312,44 @@
             dom.currentLv.appendChild(opt);
         }
 
-        for (let i = 1; i <= maxLv; i++) {
+        // 値を復元（なければ0）
+        if (!isNaN(currentVal) && currentVal < maxLv) {
+            dom.currentLv.value = currentVal;
+        } else {
+            dom.currentLv.value = 0;
+        }
+
+        // ★追加: 現在レベルに基づいて目標レベルを更新
+        updateTargetOptions();
+    }
+
+    // ★新規追加: 目標レベルを動的に生成する関数
+    function updateTargetOptions() {
+        const name = dom.building.value;
+        const data = buildings[name];
+        const maxLv = data[data.length - 1].lv;
+        const currentVal = parseInt(dom.currentLv.value);
+        const prevTarget = parseInt(dom.targetLv.value);
+
+        dom.targetLv.innerHTML = '';
+
+        // 現在レベル + 1 からスタート
+        for (let i = currentVal + 1; i <= maxLv; i++) {
             const opt = document.createElement('option');
             opt.value = i;
             opt.textContent = i;
             dom.targetLv.appendChild(opt);
         }
 
-        if (!isNaN(currentVal) && currentVal < maxLv) dom.currentLv.value = currentVal;
-        else dom.currentLv.value = 0;
-
-        if (!isNaN(targetVal) && targetVal <= maxLv && targetVal > 0) dom.targetLv.value = targetVal;
-        else dom.targetLv.value = 1; 
+        // 前回の選択値を維持できるなら維持、できなければ最小値(現在+1)を選択
+        if (!isNaN(prevTarget) && prevTarget > currentVal && prevTarget <= maxLv) {
+            dom.targetLv.value = prevTarget;
+        } else {
+            // 自動的に一番上の選択肢（現在+1）を選択
+            if(dom.targetLv.options.length > 0) {
+                dom.targetLv.selectedIndex = 0;
+            }
+        }
     }
 
     function hideResults() {
@@ -1412,19 +1443,13 @@
     function updateFcLevelOptions() {
         const name = fcDom.building.value;
         const data = fcBuildings[name];
-
         const currentVal = fcDom.currentLv.value;
-        const targetVal = fcDom.targetLv.value;
 
         fcDom.currentLv.innerHTML = '';
-        fcDom.targetLv.innerHTML = '';
 
         // 初期値の設定
-        // 戦争学園の場合: 火晶1 (fc1)
-        // それ以外の場合: Lv.30 (30)
         let baseText = "30";
         let baseValue = "30";
-
         if (name === '戦争学園') {
             baseText = "火晶1";
             baseValue = "fc1"; 
@@ -1436,30 +1461,51 @@
         fcDom.currentLv.appendChild(baseOpt);
 
         data.forEach((row, index) => {
-            // 現在レベル: データの最後の要素(最大レベル)は含めない (Max-1)
+            // 現在レベル: データの最後の要素(最大レベル)は含めない
             if (index < data.length - 1) {
                 const optC = document.createElement('option');
                 optC.value = row.id;
                 optC.textContent = row.label;
                 fcDom.currentLv.appendChild(optC);
             }
-
-            // 目標レベル: 全て含める
-            const optT = document.createElement('option');
-            optT.value = row.id;
-            optT.textContent = row.label;
-            fcDom.targetLv.appendChild(optT);
         });
 
-        // 値の復元またはデフォルト設定
+        // 値の復元
         fcDom.currentLv.value = baseValue; 
         if(currentVal && Array.from(fcDom.currentLv.options).some(o => o.value === currentVal)) {
              fcDom.currentLv.value = currentVal;
         }
 
-        fcDom.targetLv.value = data[0].id;
-        if(targetVal && Array.from(fcDom.targetLv.options).some(o => o.value === targetVal)) {
-             fcDom.targetLv.value = targetVal;
+        // ★追加: 目標レベル更新
+        updateFcTargetOptions();
+    }
+
+    // ★新規追加: 火晶目標レベル更新関数
+    function updateFcTargetOptions() {
+        const name = fcDom.building.value;
+        const data = fcBuildings[name];
+        const currentId = fcDom.currentLv.value;
+        const currentIndex = getFcIndex(name, currentId);
+        const prevTarget = fcDom.targetLv.value;
+
+        fcDom.targetLv.innerHTML = '';
+
+        // 現在のインデックスの「次」からループ開始
+        for (let i = currentIndex + 1; i < data.length; i++) {
+            const row = data[i];
+            const opt = document.createElement('option');
+            opt.value = row.id;
+            opt.textContent = row.label;
+            fcDom.targetLv.appendChild(opt);
+        }
+
+        // 値の復元または初期化
+        if (prevTarget && Array.from(fcDom.targetLv.options).some(o => o.value === prevTarget)) {
+            fcDom.targetLv.value = prevTarget;
+        } else {
+            if(fcDom.targetLv.options.length > 0) {
+                fcDom.targetLv.selectedIndex = 0;
+            }
         }
     }
 
@@ -1525,12 +1571,16 @@
             }
         }
 
+        // --- calculateCrystal 関数内の末尾付近 ---
+
         // 結果の描画
-        animateValue(fcDom.resCrystal, totalFc);
+        // ★修正: animateValueを使わず、直接 toLocaleString() でカンマ区切り表示にする
+        fcDom.resCrystal.textContent = totalFc.toLocaleString();
 
         if (totalRfc > 0) {
             fcDom.rowRefined.style.display = 'flex';
-            animateValue(fcDom.resRefined, totalRfc);
+            // ★修正: ここも同様に修正
+            fcDom.resRefined.textContent = totalRfc.toLocaleString();
         } else {
             fcDom.rowRefined.style.display = 'none';
         }

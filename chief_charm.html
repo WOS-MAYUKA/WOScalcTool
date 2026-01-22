@@ -236,7 +236,7 @@
 
     <div class="level-inputs">
       <div>
-        <label>現在のレベル</label>
+        <label>現在レベル</label>
         <select id="currentLevel">
             </select>
       </div>
@@ -247,7 +247,7 @@
       </div>
     </div>
 
-    <button class="calc-btn" onclick="calculateGemCost()">必要アイテムを計算</button>
+    <button class="calc-btn" onclick="calculateGemCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea">
         </div>
@@ -297,107 +297,125 @@ const LEVEL_DATA = {
 
 const MULTIPLIERS = [1, 3, 6, 12, 18];
 
-// ==========================================
-// 初期化 & ロジック
-// ==========================================
+  // ==========================================
+  // 初期化 & ロジック
+  // ==========================================
+  const MAX_LEVEL = 16; // 最大レベル
 
-// セレクトボックスの生成
-window.addEventListener('DOMContentLoaded', () => {
-    const currSelect = document.getElementById('currentLevel');
-    const targetSelect = document.getElementById('targetLevel');
+  // 目標レベルのプルダウンを再生成する関数
+  function updateTargetOptions() {
+      const currentVal = parseInt(document.getElementById('currentLevel').value);
+      const targetSelect = document.getElementById('targetLevel');
 
-    // 現在レベル: 0 - 15
-    for (let i = 0; i <= 15; i++) {
-        let option = document.createElement('option');
-        option.value = i;
-        option.text = i;
-        currSelect.appendChild(option);
-    }
+      // 一旦クリア
+      targetSelect.innerHTML = '';
 
-    // 目標レベル: 1 - 16
-    for (let i = 1; i <= 16; i++) {
-        let option = document.createElement('option');
-        option.value = i;
-        option.text = i;
-        if(i === 16) option.selected = true; // デフォルトで最大
-        targetSelect.appendChild(option);
-    }
-});
+      // 現在レベル+1 から 最大レベル まで生成
+      for (let i = currentVal + 1; i <= MAX_LEVEL; i++) {
+          let option = document.createElement('option');
+          option.value = i;
+          option.text = i;
+          targetSelect.appendChild(option);
+      }
 
-function calculateGemCost() {
-    const currentLv = parseInt(document.getElementById('currentLevel').value);
-    const targetLv = parseInt(document.getElementById('targetLevel').value);
-    const resultArea = document.getElementById('resultArea');
+      // ★重要: 常にリストの先頭（現在レベル+1）を選択状態にする
+      if (targetSelect.options.length > 0) {
+          targetSelect.selectedIndex = 0;
+      }
+  }
 
-    // リセット
-    resultArea.innerHTML = '';
-    resultArea.style.display = 'none';
+  // 初期化処理
+  window.addEventListener('DOMContentLoaded', () => {
+      const currSelect = document.getElementById('currentLevel');
 
-    // バリデーション
-    if (currentLv >= targetLv) {
-        alert("目標レベルは現在レベルより大きくしてください");
-        return;
-    }
+      // 現在レベル: 0 - 15 (MAX_LEVEL - 1)
+      for (let i = 0; i < MAX_LEVEL; i++) {
+          let option = document.createElement('option');
+          option.value = i;
 
-    // 基本コスト（1個分）の計算
-    let baseCost = { plan: 0, book: 0, tome: 0 };
+          // 0の場合は"未解放"、それ以外は数値を表示
+          option.text = (i === 0) ? "未解放" : i;
 
-    // currentLv + 1 から targetLv までのコストを合算
-    for (let i = currentLv + 1; i <= targetLv; i++) {
-        if (LEVEL_DATA[i]) {
-            baseCost.plan += LEVEL_DATA[i].plan;
-            baseCost.book += LEVEL_DATA[i].book;
-            baseCost.tome += LEVEL_DATA[i].tome;
-        }
-    }
+          currSelect.appendChild(option);
+      }
 
-    // 秘典の表示判定（目標レベルが12以上の場合のみ表示）
-    const showTome = targetLv >= 12;
+      // イベントリスナー: 現在レベルが変わったら目標リストを更新
+      currSelect.addEventListener('change', updateTargetOptions);
 
-    // 指定パターン分ループしてHTML生成
-    MULTIPLIERS.forEach(count => {
-        const totalPlan = (baseCost.plan * count).toLocaleString();
-        const totalBook = (baseCost.book * count).toLocaleString();
-        const totalTome = (baseCost.tome * count).toLocaleString();
+      // 初回実行（目標リストを生成）
+      updateTargetOptions();
+  });
 
-        // 秘典のHTML（条件付き）
-        const tomeHtml = showTome ? `
-            <div class="result-row">
-                <span class="result-label">
-                    <i class="fas fa-book-open icon-tome"></i> 宝石秘典
-                </span>
-                <span class="result-value">${totalTome}</span>
-            </div>` : '';
+  function calculateGemCost() {
+      const currentLv = parseInt(document.getElementById('currentLevel').value);
+      const targetLv = parseInt(document.getElementById('targetLevel').value);
+      const resultArea = document.getElementById('resultArea');
 
-        // グループHTMLの生成
-        const groupHtml = `
-            <div class="result-group">
-                <div class="group-header">宝石 ${count}個分</div>
+      // リセット
+      resultArea.innerHTML = '';
+      resultArea.style.display = 'none';
 
-                <div class="result-row">
-                    <span class="result-label">
-                        <i class="fas fa-scroll icon-plan"></i> 宝石図面
-                    </span>
-                    <span class="result-value">${totalPlan}</span>
-                </div>
+      // バリデーション
+      if (currentLv >= targetLv) {
+          alert("目標レベルは現在レベルより大きくしてください");
+          return;
+      }
 
-                <div class="result-row">
-                    <span class="result-label">
-                        <i class="fas fa-book icon-book"></i> 宝石ハンドブック
-                    </span>
-                    <span class="result-value">${totalBook}</span>
-                </div>
+      // 基本コスト（1個分）の計算
+      let baseCost = { plan: 0, book: 0, tome: 0 };
 
-                ${tomeHtml}
-            </div>
-        `;
+      for (let i = currentLv + 1; i <= targetLv; i++) {
+          if (LEVEL_DATA[i]) {
+              baseCost.plan += LEVEL_DATA[i].plan;
+              baseCost.book += LEVEL_DATA[i].book;
+              baseCost.tome += LEVEL_DATA[i].tome;
+          }
+      }
 
-        resultArea.insertAdjacentHTML('beforeend', groupHtml);
-    });
+      // 秘典の表示判定
+      const showTome = targetLv >= 12;
 
-    // 結果表示エリアを表示（アニメーション発火）
-    resultArea.style.display = 'block';
-}
+      MULTIPLIERS.forEach(count => {
+          const totalPlan = (baseCost.plan * count).toLocaleString();
+          const totalBook = (baseCost.book * count).toLocaleString();
+          const totalTome = (baseCost.tome * count).toLocaleString();
+
+          const tomeHtml = showTome ? `
+              <div class="result-row">
+                  <span class="result-label">
+                      <i class="fas fa-book-open icon-tome"></i> 宝石秘典
+                  </span>
+                  <span class="result-value">${totalTome}</span>
+              </div>` : '';
+
+          const groupHtml = `
+              <div class="result-group">
+                  <div class="group-header">宝石 ${count}個分</div>
+
+                  <div class="result-row">
+                      <span class="result-label">
+                          <i class="fas fa-scroll icon-plan"></i> 宝石図面
+                      </span>
+                      <span class="result-value">${totalPlan}</span>
+                  </div>
+
+                  <div class="result-row">
+                      <span class="result-label">
+                          <i class="fas fa-book icon-book"></i> 宝石ハンドブック
+                      </span>
+                      <span class="result-value">${totalBook}</span>
+                  </div>
+
+                  ${tomeHtml}
+              </div>
+          `;
+
+          resultArea.insertAdjacentHTML('beforeend', groupHtml);
+      });
+
+      resultArea.style.display = 'block';
+  }
+
 </script>
 
 </body>

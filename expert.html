@@ -263,27 +263,27 @@
       <div id="tab-favor" class="tab-content">
         <div style="display: flex; gap: 20px;">
           <div style="flex:1;">
-            <label>現在の好感度レベル</label>
+            <label>現在レベル</label>
             <select id="currentLv"></select>
           </div>
           <div style="flex:1;">
-            <label>目標の好感度レベル</label>
+            <label>目標レベル</label>
             <select id="targetLv"></select>
           </div>
         </div>
 
-        <button class="calc-btn" onclick="calculateFavor()">好感度コストを計算</button>
+        <button class="calc-btn" onclick="calculateFavor()">必要コストを計算</button>
 
       <div class="result-container" id="resFavorArea" style="display:none;">
         <div class="result-row">
           <span class="result-label">
-            <i class="fas fa-heart icon-favor"></i> 必要 好感度
+            <i class="fas fa-heart icon-favor"></i> 好感度
           </span>
           <span class="result-value" id="resFavorVal">0</span>
         </div>
         <div class="result-row">
           <span class="result-label">
-            <i class="fas fa-certificate icon-mark"></i> 必要 印 (関係進展素材)
+            <i class="fas fa-certificate icon-mark"></i> 印
           </span>
           <span class="result-value" id="resMarkVal">0</span>
         </div>
@@ -299,10 +299,10 @@
           </div>
           <div class="skill-inputs">
             <div>
-              <label>現在Lv</label>
+              <label>現在レベル</label>
               <select id="s1_cur"></select> </div>
             <div>
-              <label>目標Lv</label>
+              <label>目標レベル</label>
               <select id="s1_tar"></select> </div>
           </div>
         </div>
@@ -315,11 +315,11 @@
           </div>
           <div class="skill-inputs">
             <div>
-              <label>現在Lv</label>
+              <label>現在レベル</label>
               <select id="s2_cur"></select>
             </div>
             <div>
-              <label>目標Lv</label>
+              <label>目標レベル</label>
               <select id="s2_tar"></select>
             </div>
           </div>
@@ -333,11 +333,11 @@
           </div>
           <div class="skill-inputs">
             <div>
-              <label>現在Lv</label>
+              <label>現在レベル</label>
               <select id="s3_cur"></select>
             </div>
             <div>
-              <label>目標Lv</label>
+              <label>目標レベル</label>
               <select id="s3_tar"></select>
             </div>
           </div>
@@ -351,45 +351,38 @@
           </div>
           <div class="skill-inputs">
             <div>
-              <label>現在Lv</label>
+              <label>現在レベル</label>
               <select id="s4_cur"></select>
             </div>
             <div>
-              <label>目標Lv</label>
+              <label>目標レベル</label>
               <select id="s4_tar"></select>
             </div>
           </div>
         </div>
 
-      <button class="calc-btn" onclick="calculateSkill()">スキルコストを計算</button>
+      <button class="calc-btn" onclick="calculateSkill()">必要コストを計算</button>
 
-        <div class="result-container" id="resSkillArea" style="display:none;">
-          <div class="result-row">
-            <span class="result-label" style="white-space: nowrap;">
-              <i class="fas fa-book icon-book"></i> 学識の書 (Book)
-            </span>
-            <span class="result-value" id="resBook">0</span>
-          </div>
-          <div class="result-row">
-            <span class="result-label" style="white-space: nowrap;">
-              <i class="fas fa-star icon-xp"></i> 学習経験値 (XP)
-            </span>
-            <span class="result-value" id="resXP">0</span>
-          </div>
-          <div class="result-row" style="align-items: flex-start;">
-
-            <span class="result-label" style="white-space: nowrap; margin-top: 5px;">
-              <i class="fas fa-clock icon-time"></i> 加速時間 (Min)
-            </span>
-
-            <div style="min-width: 0;">
-              <div class="result-value" id="resTime" style="text-align:right;">0</div>
-              <div id="resTimeFormatted" style="font-size:0.75rem; color:var(--text-sub); text-align:right; margin-top:5px; white-space: nowrap;"></div>
-            </div>
-          </div>
-        </div>
-
-      </div> </div> </div> 
+  <div class="result-container" id="resSkillArea" style="display:none;">
+    <div class="result-row">
+      <span class="result-label">
+        <i class="fas fa-book icon-book"></i> 学識の書
+      </span>
+      <span class="result-value" id="resBook">0</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">
+        <i class="fas fa-star icon-xp"></i> 学習経験値
+      </span>
+      <span class="result-value" id="resXP">0</span>
+    </div>
+    <div class="result-row">
+      <span class="result-label">
+        <i class="fas fa-clock icon-time"></i> 学習時間
+      </span>
+      <span class="result-value" id="resTime">0</span>
+    </div>
+  </div>
 
   <div class="youtube-wrapper">
     <div class="youtube-container">
@@ -884,7 +877,6 @@ const favorDataMap = {
     "valeria": [10, 10, 20, 20]
   };
 
-  // 選択された専門家に応じて入力欄の max 属性を更新する関数
   // ==========================================
   // ■ スキル選択肢生成 (Dynamic Option Generation)
   // ==========================================
@@ -897,77 +889,96 @@ const favorDataMap = {
 
     for (let i = 1; i <= 4; i++) {
       const maxVal = limits[i - 1]; // そのスキルの上限Lv
-
-      // --- 現在Lv (sX_cur) の生成 ---
-      // 範囲: 1 〜 (上限 - 1)
       const curSelect = document.getElementById(`s${i}_cur`);
-      const oldCurVal = parseInt(curSelect.value); // 以前の値を保存
-      curSelect.innerHTML = ""; // 一旦クリア
+      const tarSelect = document.getElementById(`s${i}_tar`);
 
-      for (let v = 1; v <= maxVal - 1; v++) {
+      // --- 1. 現在Lv (sX_cur) の生成 ---
+      // 範囲: 1 〜 (上限 - 1)
+      curSelect.innerHTML = "";
+      for (let v = 1; v < maxVal; v++) {
         const op = document.createElement("option");
         op.value = v;
         op.text = v;
         curSelect.appendChild(op);
       }
+      curSelect.value = 1; // 初期値は1に戻す
 
-      // 以前の値が新しい範囲内なら維持、なければ1に戻す
-      if (oldCurVal >= 1 && oldCurVal <= maxVal - 1) {
-        curSelect.value = oldCurVal;
-      } else {
-        curSelect.value = 1;
-      }
+      // --- 2. 目標Lv更新関数の定義 ---
+      const updateTarget = () => {
+        const currentVal = parseInt(curSelect.value);
+        tarSelect.innerHTML = "";
 
-      // --- 目標Lv (sX_tar) の生成 ---
-      // 範囲: 2 〜 上限
-      const tarSelect = document.getElementById(`s${i}_tar`);
-      const oldTarVal = parseInt(tarSelect.value); // 以前の値を保存
-      tarSelect.innerHTML = ""; // 一旦クリア
+        // 範囲: (現在Lv + 1) 〜 上限
+        for (let v = currentVal + 1; v <= maxVal; v++) {
+          const op = document.createElement("option");
+          op.value = v;
+          op.text = v;
+          tarSelect.appendChild(op);
+        }
 
-      for (let v = 2; v <= maxVal; v++) {
-        const op = document.createElement("option");
-        op.value = v;
-        op.text = v;
-        tarSelect.appendChild(op);
-      }
+        // ★目標の初期値は「現在の+1」(リストの先頭)
+        if (tarSelect.options.length > 0) {
+          tarSelect.selectedIndex = 0;
+        }
+      };
 
-      // 以前の値が新しい範囲内なら維持、なければ上限値(Max)にする
-      if (oldTarVal >= 2 && oldTarVal <= maxVal) {
-        tarSelect.value = oldTarVal;
-      } else {
-        tarSelect.value = maxVal; // デフォルトは最大値
-      }
+      // --- 3. イベントリスナー登録 ---
+      // 以前のリスナーが残らないよう onchange プロパティを使用
+      curSelect.onchange = updateTarget;
+
+      // --- 4. 初回実行 ---
+      updateTarget();
     }
   }
 
-      // 好感度プルダウンの選択肢を生成する関数
-        function initFavorSelects() {
-          const curSelect = document.getElementById("currentLv");
-          const tarSelect = document.getElementById("targetLv");
+  // ==========================================
+  // ■ 好感度プルダウン制御 (Favor Select Control)
+  // ==========================================
 
-          // 現在レベル: 1〜99
-          for (let i = 1; i <= 99; i++) {
-            const op = document.createElement("option");
-            op.value = i;
-            op.text = i;
-            curSelect.appendChild(op);
-          }
+  // 好感度プルダウンの初期化
+  function initFavorSelects() {
+    const curSelect = document.getElementById("currentLv");
+    const tarSelect = document.getElementById("targetLv");
 
-          // 目標レベル: 2〜100
-          for (let i = 2; i <= 100; i++) {
-            const op = document.createElement("option");
-            op.value = i;
-            op.text = i;
-            if (i === 100) op.selected = true; // デフォルトを100に設定
-            tarSelect.appendChild(op);
-          }
-        }
+    // 現在レベル: 1〜99
+    for (let i = 1; i <= 99; i++) {
+      const op = document.createElement("option");
+      op.value = i;
+      op.text = i;
+      curSelect.appendChild(op);
+    }
 
-        // ★ 変更: ページ読み込み時に両方の初期化関数を実行
-        document.addEventListener('DOMContentLoaded', () => {
-          updateSkillOptions(); // 既存のスキル用
-          initFavorSelects();   // 今回追加した好感度用
-        });
+    // 目標レベル更新関数
+    const updateFavorTarget = () => {
+      const currentVal = parseInt(curSelect.value);
+      tarSelect.innerHTML = "";
+
+      // 範囲: (現在Lv + 1) 〜 100
+      for (let i = currentVal + 1; i <= 100; i++) {
+        const op = document.createElement("option");
+        op.value = i;
+        op.text = i;
+        tarSelect.appendChild(op);
+      }
+
+      // ★目標の初期値は「現在の+1」(リストの先頭)
+      if (tarSelect.options.length > 0) {
+        tarSelect.selectedIndex = 0;
+      }
+    };
+
+    // イベントリスナー登録
+    curSelect.onchange = updateFavorTarget;
+
+    // 初回実行
+    updateFavorTarget();
+  }
+
+  // ページ読み込み時の初期化実行
+  document.addEventListener('DOMContentLoaded', () => {
+    updateSkillOptions(); // スキル用
+    initFavorSelects();   // 好感度用
+  });
   
 // ==========================================
 // ロジック (Logic)
@@ -1056,10 +1067,10 @@ function calculateFavor() {
       let sStart = parseInt(document.getElementById(`s${i}_cur`).value);
       let sEnd = parseInt(document.getElementById(`s${i}_tar`).value);
 
-      // ★追加: ガードロジック (目標レベル <= 現在レベル の場合)
+      // ガードロジック
       if (sEnd <= sStart) {
         alert(`スキル${i}の設定エラー:\n目標レベルは現在レベルより高く設定してください。\n(現在: Lv${sStart} -> 目標: Lv${sEnd})`);
-        return; // 計算を中断
+        return;
       }
 
       // コスト加算処理
@@ -1074,22 +1085,25 @@ function calculateFavor() {
       }
     }
 
-    // 時間の整形 (h m / d h m)
+    // 時間の整形 (xxd xxh xxm)
     const totalHours = Math.floor(totalTime / 60);
     const mins = totalTime % 60;
     const days = Math.floor(totalHours / 24);
     const dayHours = totalHours % 24;
 
-    let timeStr = `${totalHours}h ${mins}m`;
+    let timeStr = "";
     if (days > 0) {
-      timeStr += ` (${days}d ${dayHours}h ${mins}m)`;
+      timeStr = `${days}d ${dayHours}h ${mins}m`;
+    } else {
+      timeStr = `${dayHours}h ${mins}m`;
     }
 
     // 結果の表示
     document.getElementById("resBook").innerText = totalBook.toLocaleString();
     document.getElementById("resXP").innerText = totalXP.toLocaleString();
-    document.getElementById("resTime").innerText = totalTime.toLocaleString();
-    document.getElementById("resTimeFormatted").innerText = timeStr;
+
+    // メイン表示エリアに整形済み時間をセット
+    document.getElementById("resTime").innerText = timeStr;
 
     document.getElementById("resSkillArea").style.display = "block";
   }

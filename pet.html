@@ -263,7 +263,7 @@
       </div>
     </div>
 
-    <button class="calc-btn" onclick="calculatePetCost()">育成コストを計算</button>
+    <button class="calc-btn" onclick="calculatePetCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea" style="display:none;">
 
@@ -442,25 +442,47 @@ const materialData = {
 // ロジック (Logic)
 // ==========================================
 
-  // ペット選択時にプルダウンの選択肢を更新
-  function updateMaxLevel() {
+  // ★新規追加: 目標レベルの選択肢を動的に生成する関数
+  function updateTargetOptions() {
     const select = document.getElementById("petSelect");
-    const selectedOption = select.options[select.selectedIndex];
-    const maxLv = parseInt(selectedOption.getAttribute("data-max")); // ランクごとの最大Lv
+    const maxLv = parseInt(select.options[select.selectedIndex].getAttribute("data-max"));
 
     const curSelect = document.getElementById("currentLv");
     const tarSelect = document.getElementById("targetLv");
 
-    // 現在の選択値を保持（可能なら）
-    const oldCur = parseInt(curSelect.value) || 1;
-    const oldTar = parseInt(tarSelect.value) || maxLv;
+    const currentVal = parseInt(curSelect.value);
+    const oldTar = parseInt(tarSelect.value);
 
-    // リセット
-    curSelect.innerHTML = "";
     tarSelect.innerHTML = "";
 
-    // --- 現在レベル (1 〜 Max-1) ---
-    // 例: Max60なら 1〜59
+    // 現在レベル + 1 から 最大レベル までを生成
+    for (let i = currentVal + 1; i <= maxLv; i++) {
+      const op = document.createElement("option");
+      op.value = i;
+      op.text = i;
+      tarSelect.appendChild(op);
+    }
+
+    // 前回の値を維持できるなら維持、できなければ最小値(現在+1)を選択
+    if (oldTar > currentVal && oldTar <= maxLv) {
+      tarSelect.value = oldTar;
+    } else if (tarSelect.options.length > 0) {
+      tarSelect.selectedIndex = 0;
+    }
+  }
+
+  // ★修正: ペット選択時の処理（現在レベルのみ生成し、目標レベルは updateTargetOptions に任せる）
+  function updateMaxLevel() {
+    const select = document.getElementById("petSelect");
+    const maxLv = parseInt(select.options[select.selectedIndex].getAttribute("data-max"));
+
+    const curSelect = document.getElementById("currentLv");
+    // 前回の値を保持
+    const oldCur = parseInt(curSelect.value) || 1;
+
+    curSelect.innerHTML = "";
+
+    // 現在レベル (1 〜 Max-1)
     for (let i = 1; i < maxLv; i++) {
       const op = document.createElement("option");
       op.value = i;
@@ -468,28 +490,15 @@ const materialData = {
       curSelect.appendChild(op);
     }
 
-    // 値の復元（範囲内なら維持、範囲外なら1）
+    // 値の復元
     if (oldCur >= 1 && oldCur < maxLv) {
       curSelect.value = oldCur;
     } else {
       curSelect.value = 1;
     }
 
-    // --- 目標レベル (2 〜 Max) ---
-    // 例: Max60なら 2〜60
-    for (let i = 2; i <= maxLv; i++) {
-      const op = document.createElement("option");
-      op.value = i;
-      op.text = i;
-      tarSelect.appendChild(op);
-    }
-
-    // 値の復元（範囲内なら維持、範囲外なら最大値）
-    if (oldTar >= 2 && oldTar <= maxLv) {
-      tarSelect.value = oldTar;
-    } else {
-      tarSelect.value = maxLv;
-    }
+    // 目標レベルの更新を実行
+    updateTargetOptions();
   }
 
 // コスト計算
@@ -543,8 +552,14 @@ function calculatePetCost() {
   document.getElementById("resultArea").style.display = "block";
 }
 
-// 初期化
-document.addEventListener('DOMContentLoaded', updateMaxLevel);
+  // ★修正: 初期化とイベントリスナーの設定
+  document.addEventListener('DOMContentLoaded', () => {
+    // 現在レベルが変更されたら、目標レベルの範囲を再計算する
+    document.getElementById("currentLv").addEventListener('change', updateTargetOptions);
+
+    // 初回実行
+    updateMaxLevel();
+  });
 
 </script>
 

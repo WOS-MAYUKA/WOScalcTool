@@ -225,28 +225,28 @@
     <div class="row-inputs">
       <div>
         <label>現在ランク</label>
-        <select id="currentRank" onchange="toggleStageInputs()">
-            </select>
+        <select id="currentRank">
+        </select>
         <div id="currentStageBox" class="hidden" style="margin-top: 10px;">
            <label id="curStageLabel" style="font-size:0.8rem; color:var(--text-sub);">段階</label>
            <select id="currentStage">
-             </select>
+           </select>
         </div>
       </div>
 
       <div>
         <label>目標ランク</label>
-        <select id="targetRank" onchange="toggleStageInputs()">
-            </select>
+        <select id="targetRank">
+        </select>
         <div id="targetStageBox" class="hidden" style="margin-top: 10px;">
            <label id="tarStageLabel" style="font-size:0.8rem; color:var(--text-sub);">段階</label>
            <select id="targetStage">
-             </select>
+           </select>
         </div>
       </div>
     </div>
 
-    <button class="calc-btn" onclick="calculateEquipCost()">必要素材を計算</button>
+    <button class="calc-btn" onclick="calculateEquipCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea">
         </div>
@@ -457,189 +457,282 @@ const EQUIP_DATA = [
     { name: "神話T4★3", alloy: 36000, polish: 390, bp: 65, amber: 8, hasStages: false }
 ];
 
-// 初期化
-document.addEventListener('DOMContentLoaded', () => {
-    const currSel = document.getElementById('currentRank');
-    const targSel = document.getElementById('targetRank');
+  // ==========================================
+  // ロジック & 初期化 (Logic & Init)
+  // ==========================================
 
-    // 範囲制限用インデックス
-    const minTargetIdx = 1; // グッド (idx 1)
-    const maxCurrentName = "神話T4★2";
-    let maxCurrentIdx = -1;
+  document.addEventListener('DOMContentLoaded', () => {
+      const currSel = document.getElementById('currentRank');
 
-    // データスキャンしてインデックス特定
-    EQUIP_DATA.forEach((item, index) => {
-        if (item.name === maxCurrentName) maxCurrentIdx = index;
-    });
+      // 現在ランクの選択肢生成
+      // データ全体の最後まで選択可能にする
+      EQUIP_DATA.forEach((item, index) => {
+          if (item.isStage) return; // 内部データはスキップ
+          let op = document.createElement('option');
+          op.value = index;
+          op.text = item.name;
+          currSel.appendChild(op);
+      });
 
-    // プルダウン生成
-    EQUIP_DATA.forEach((item, index) => {
-        // 内部ステージデータはスキップ
-        if (item.isStage) return;
+      // --- イベントリスナーの設定 ---
 
-        // 現在ランク: 未解放(idx 0) 〜 神話T4★2
-        if (index <= maxCurrentIdx) {
-            let op1 = document.createElement('option');
-            op1.value = index;
-            op1.text = item.name;
-            currSel.appendChild(op1);
-        }
+      // 1. 現在ランク変更時
+      document.getElementById('currentRank').addEventListener('change', () => {
+          updateCurrentStageList(); 
+          updateTargetRankList();
+      });
 
-        // 目標ランク: グッド(idx 1) から
-        if (index >= minTargetIdx) {
-            let op2 = document.createElement('option');
-            op2.value = index;
-            op2.text = item.name;
-            targSel.appendChild(op2);
-        }
-    });
+      // 2. 現在ステージ変更時 (最大段階かどうかで目標ランクの開始位置が変わるため)
+      document.getElementById('currentStage').addEventListener('change', () => {
+          updateTargetRankList();
+      });
 
-    // 初期値設定
-    targSel.selectedIndex = targSel.options.length - 1; 
-    toggleStageInputs();
-});
+      // 3. 目標ランク変更時
+      document.getElementById('targetRank').addEventListener('change', () => {
+          updateTargetStageList();
+      });
 
-// 段階入力エリアの表示切替
-function toggleStageInputs() {
-    updateStageSelect('currentRank', 'currentStageBox', 'currentStage', 'curStageLabel');
-    updateStageSelect('targetRank', 'targetStageBox', 'targetStage', 'tarStageLabel');
-}
+      // 初回実行
+      updateCurrentStageList();
+      updateTargetRankList();
+  });
 
-function updateStageSelect(rankId, boxId, selectId, labelId) {
-    const rankIdx = parseInt(document.getElementById(rankId).value);
-    const box = document.getElementById(boxId);
-    const select = document.getElementById(selectId);
-    const label = document.getElementById(labelId);
+  // --- 動的生成ロジック ---
 
-    if (EQUIP_DATA[rankIdx] && EQUIP_DATA[rankIdx].hasStages) {
-        box.classList.remove('hidden');
+  // 【A】現在の段階（0 〜 Max）を生成
+  function updateCurrentStageList() {
+      const rankIdx = parseInt(document.getElementById('currentRank').value);
+      const box = document.getElementById('currentStageBox');
+      const select = document.getElementById('currentStage');
+      const label = document.getElementById('curStageLabel');
 
-        // maxStage (3 or 4) に応じてプルダウンを再生成
-        const maxStage = EQUIP_DATA[rankIdx].maxStage;
-        const currentVal = parseInt(select.value) || 0; // 現在の値を保持
+      // 以前の選択値を保持
+      const prevVal = parseInt(select.value) || 0;
+      select.innerHTML = '';
 
-        select.innerHTML = '';
+      if (EQUIP_DATA[rankIdx] && EQUIP_DATA[rankIdx].hasStages) {
+          box.classList.remove('hidden');
+          const maxStage = EQUIP_DATA[rankIdx].maxStage;
 
-        // 0〜maxStage まで生成
-        for(let i=0; i<=maxStage; i++) {
-            let op = document.createElement('option');
-            op.value = i;
-            op.text = i + (i === 0 ? " (初期)" : "") + (i === maxStage ? " (最大)" : "");
-            select.appendChild(op);
-        }
+          for(let i=0; i<=maxStage; i++) {
+              let op = document.createElement('option');
+              op.value = i;
+              op.text = i;
+              select.appendChild(op);
+          }
+          label.innerText = `段階 (0-${maxStage})`;
 
-        // ラベル更新 (0-3 or 0-4)
-        label.innerText = `段階 (0-${maxStage})`;
+          // 値の復元
+          if (prevVal <= maxStage) select.value = prevVal;
+          else select.value = 0;
 
-        if(currentVal <= maxStage) {
-            select.value = currentVal;
-        } else {
-            select.value = maxStage;
-        }
+      } else {
+          box.classList.add('hidden');
+          // 計算用にダミー値を入れておく
+          let op = document.createElement('option');
+          op.value = 0;
+          select.appendChild(op);
+      }
+  }
 
-    } else {
-        box.classList.add('hidden');
-        select.value = 0;
-    }
-}
+  // 【B】目標ランク（条件に応じて開始位置を調整）を生成
+  function updateTargetRankList() {
+      const curRankIdx = parseInt(document.getElementById('currentRank').value);
+      const curStageVal = parseInt(document.getElementById('currentStage').value) || 0;
 
-// 計算実行
-function calculateEquipCost() {
-    // 1. 開始インデックス
-    const curRankIdx = parseInt(document.getElementById('currentRank').value);
-    let startIdx = curRankIdx;
+      const targSel = document.getElementById('targetRank');
+      const prevTarVal = parseInt(targSel.value);
 
-    if (EQUIP_DATA[curRankIdx].hasStages) {
-        const stageVal = parseInt(document.getElementById('currentStage').value);
-        startIdx += stageVal;
-    }
+      targSel.innerHTML = '';
 
-    // 2. 終了インデックス
-    const tarRankIdx = parseInt(document.getElementById('targetRank').value);
-    let endIdx = tarRankIdx;
+      const minTargetIdx = 1; // グッド(idx 1)以上
 
-    if (EQUIP_DATA[tarRankIdx].hasStages) {
-        const stageVal = parseInt(document.getElementById('targetStage').value);
-        endIdx += stageVal;
-    }
+      // ★目標リストの開始位置を決定
+      let startRankIdx = curRankIdx;
 
-    // エラーチェック
-    if (startIdx >= endIdx) {
-        alert("目標ランクは現在ランクより高く設定してください");
-        return;
-    }
+      if (EQUIP_DATA[curRankIdx]) {
+          // 1. 段階がない装備(レジェンドT2★2まで) -> 常に次ランクから
+          if (!EQUIP_DATA[curRankIdx].hasStages) {
+              startRankIdx = curRankIdx + 1;
+          } 
+          // 2. 段階がある装備 -> 現在が最大段階なら次ランクから
+          else {
+              const maxStage = EQUIP_DATA[curRankIdx].maxStage;
+              if (curStageVal >= maxStage) {
+                  startRankIdx = curRankIdx + 1;
+              }
+          }
+      }
 
-    // 3. コスト積算
-    let baseCost = { alloy: 0, polish: 0, bp: 0, amber: 0 };
+      EQUIP_DATA.forEach((item, index) => {
+          if (item.isStage) return;
 
-    // 現在ランク(startIdx)を含めず、目標ランク(endIdx)を含むようにループ
-    for (let i = startIdx + 1; i <= endIdx; i++) {
-        if (EQUIP_DATA[i]) {
-            baseCost.alloy += EQUIP_DATA[i].alloy;
-            baseCost.polish += EQUIP_DATA[i].polish;
-            baseCost.bp += EQUIP_DATA[i].bp;
-            baseCost.amber += EQUIP_DATA[i].amber;
-        }
-    }
+          // 条件：グッド以上 かつ 計算した開始ランク以上
+          if (index >= minTargetIdx && index >= startRankIdx) {
+              let op = document.createElement('option');
+              op.value = index;
+              op.text = item.name;
+              targSel.appendChild(op);
+          }
+      });
 
-    // 4. 結果表示
-    const resultArea = document.getElementById('resultArea');
-    resultArea.innerHTML = '';
+      // 値の復元
+      if (prevTarVal >= startRankIdx) {
+          targSel.value = prevTarVal;
+      } else {
+          if (targSel.options.length > 0) {
+              targSel.selectedIndex = 0;
+          }
+      }
 
-    const multipliers = [1, 2, 4, 6]; 
+      // 目標ランクが決まったので、目標ステージを計算
+      updateTargetStageList();
+  }
 
-    multipliers.forEach(m => {
+  // 【C】目標の段階（条件付き動的生成）
+  function updateTargetStageList() {
+      const curRankIdx = parseInt(document.getElementById('currentRank').value);
+      const tarRankIdx = parseInt(document.getElementById('targetRank').value);
 
-        const totalAlloy = Math.ceil(baseCost.alloy * m).toLocaleString();
-        const totalPolish = Math.ceil(baseCost.polish * m).toLocaleString();
-        const totalBp = Math.ceil(baseCost.bp * m).toLocaleString();
-        const totalAmber = Math.ceil(baseCost.amber * m).toLocaleString();
+      const box = document.getElementById('targetStageBox');
+      const select = document.getElementById('targetStage');
+      const label = document.getElementById('tarStageLabel');
 
-        const showAmber = (baseCost.amber * m) > 0;
+      const prevVal = parseInt(select.value) || 0;
+      select.innerHTML = '';
 
-        let html = `
-            <div class="result-group">
-                <div class="group-header">${m}部位分</div>
+      if (EQUIP_DATA[tarRankIdx] && EQUIP_DATA[tarRankIdx].hasStages) {
+          box.classList.remove('hidden');
+          const maxStage = EQUIP_DATA[tarRankIdx].maxStage;
 
-                <div class="result-row">
-                    <span class="result-label">
-                        <i class="fas fa-layer-group icon-alloy"></i> 強靭な合金
-                    </span>
-                    <span class="result-value">${totalAlloy}</span>
-                </div>
+          // 開始ステージの決定
+          let startStage = 0;
+          if (curRankIdx === tarRankIdx) {
+              const curStage = parseInt(document.getElementById('currentStage').value) || 0;
+              startStage = curStage + 1;
+          }
 
-                <div class="result-row">
-                    <span class="result-label">
-                        <i class="fas fa-flask icon-polish"></i> 研磨剤
-                    </span>
-                    <span class="result-value">${totalPolish}</span>
-                </div>
+          // ループ生成
+          for(let i = startStage; i <= maxStage; i++) {
+              let op = document.createElement('option');
+              op.value = i;
+              op.text = i;
+              select.appendChild(op);
+          }
 
-                <div class="result-row">
-                    <span class="result-label">
-                        <i class="fas fa-scroll icon-bp"></i> 設計図面
-                    </span>
-                    <span class="result-value">${totalBp}</span>
-                </div>
-        `;
+          label.innerText = `段階 (${startStage}-${maxStage})`;
 
-        if (showAmber) {
-            html += `
-                <div class="result-row">
-                    <span class="result-label">
-                        <i class="fas fa-gem icon-amber"></i> 月光琥珀
-                    </span>
-                    <span class="result-value">${totalAmber}</span>
-                </div>
-            `;
-        }
+          // 値の復元
+          if (prevVal >= startStage && prevVal <= maxStage) {
+              select.value = prevVal;
+          } else {
+              select.value = maxStage;
+          }
 
-        html += `</div>`;
-        resultArea.insertAdjacentHTML('beforeend', html);
-    });
+      } else {
+          box.classList.add('hidden');
+          let op = document.createElement('option');
+          op.value = 0;
+          select.appendChild(op);
+      }
+  }
 
-    resultArea.style.display = 'block';
-}
+  // --- 計算実行 ---
+  function calculateEquipCost() {
+      // 1. 開始インデックス
+      const curRankIdx = parseInt(document.getElementById('currentRank').value);
+      let startIdx = curRankIdx;
+
+      if (EQUIP_DATA[curRankIdx].hasStages) {
+          const stageVal = parseInt(document.getElementById('currentStage').value);
+          startIdx += stageVal;
+      }
+
+      // 2. 終了インデックス
+      const tarRankIdx = parseInt(document.getElementById('targetRank').value);
+      let endIdx = tarRankIdx;
+
+      if (EQUIP_DATA[tarRankIdx].hasStages) {
+          const stageVal = parseInt(document.getElementById('targetStage').value);
+          endIdx += stageVal;
+      }
+
+      // エラーチェック
+      if (startIdx >= endIdx) {
+          alert("目標ランクは現在ランクより高く設定してください");
+          return;
+      }
+
+      // 3. コスト積算
+      let baseCost = { alloy: 0, polish: 0, bp: 0, amber: 0 };
+
+      for (let i = startIdx + 1; i <= endIdx; i++) {
+          if (EQUIP_DATA[i]) {
+              baseCost.alloy += EQUIP_DATA[i].alloy;
+              baseCost.polish += EQUIP_DATA[i].polish;
+              baseCost.bp += EQUIP_DATA[i].bp;
+              baseCost.amber += EQUIP_DATA[i].amber;
+          }
+      }
+
+      // 4. 結果表示
+      const resultArea = document.getElementById('resultArea');
+      resultArea.innerHTML = '';
+
+      const multipliers = [1, 2, 4, 6]; 
+
+      multipliers.forEach(m => {
+          const totalAlloy = Math.ceil(baseCost.alloy * m).toLocaleString();
+          const totalPolish = Math.ceil(baseCost.polish * m).toLocaleString();
+          const totalBp = Math.ceil(baseCost.bp * m).toLocaleString();
+          const totalAmber = Math.ceil(baseCost.amber * m).toLocaleString();
+
+          const showAmber = (baseCost.amber * m) > 0;
+
+          let html = `
+              <div class="result-group">
+                  <div class="group-header">${m}部位分</div>
+
+                  <div class="result-row">
+                      <span class="result-label">
+                          <i class="fas fa-layer-group icon-alloy"></i> 強靭な合金
+                      </span>
+                      <span class="result-value">${totalAlloy}</span>
+                  </div>
+
+                  <div class="result-row">
+                      <span class="result-label">
+                          <i class="fas fa-flask icon-polish"></i> 研磨剤
+                      </span>
+                      <span class="result-value">${totalPolish}</span>
+                  </div>
+
+                  <div class="result-row">
+                      <span class="result-label">
+                          <i class="fas fa-scroll icon-bp"></i> 設計図面
+                      </span>
+                      <span class="result-value">${totalBp}</span>
+                  </div>
+          `;
+
+          if (showAmber) {
+              html += `
+                  <div class="result-row">
+                      <span class="result-label">
+                          <i class="fas fa-gem icon-amber"></i> 月光琥珀
+                      </span>
+                      <span class="result-value">${totalAmber}</span>
+                  </div>
+              `;
+          }
+
+          html += `</div>`;
+          resultArea.insertAdjacentHTML('beforeend', html);
+      });
+
+      resultArea.style.display = 'block';
+  }
+
 </script>
 
 </body>

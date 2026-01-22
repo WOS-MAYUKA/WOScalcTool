@@ -236,11 +236,11 @@
     <div class="input-row">
       <div class="input-group">
         <label>装備レベル</label>
-        <select id="curLv" onchange="updateVisibility()"></select>
+      <select id="curLv" onchange="updateUI()"></select>
       </div>
       <div class="input-group" id="curMasteryGroup" style="display:none;">
         <label>精錬レベル</label>
-        <select id="curMastery" onchange="updateVisibility()"></select>
+         <select id="curMastery" onchange="updateUI()"></select>
       </div>
     </div>
 
@@ -383,58 +383,97 @@ function populateSelect(selectId, min, max, defaultVal = null) {
   }
 }
 
-function updateUI() {
-  const curRarity = document.getElementById("curRarity").value;
-  let tarRarity = curRarity;
+  function updateUI() {
+    const curRarity = document.getElementById("curRarity").value;
+    let tarRarity = curRarity;
 
-  if (curRarity === "legend") {
-    document.getElementById("tarRarityArea").style.display = "block";
-    tarRarity = document.getElementById("tarRarity").value;
-  } else if (curRarity === "mythic") {
-    document.getElementById("tarRarityArea").style.display = "none";
-    tarRarity = "mythic";
-  } else {
-    document.getElementById("tarRarityArea").style.display = "none";
-    tarRarity = curRarity;
+    // --- 目標レアリティの表示制御 ---
+    if (curRarity === "legend") {
+      document.getElementById("tarRarityArea").style.display = "block";
+      tarRarity = document.getElementById("tarRarity").value;
+    } else if (curRarity === "mythic") {
+      document.getElementById("tarRarityArea").style.display = "none";
+      tarRarity = "mythic";
+    } else {
+      document.getElementById("tarRarityArea").style.display = "none";
+      tarRarity = curRarity;
+    }
+
+    // --- 現在レベル・精錬レベルの生成 ---
+    let curMaxLv = maxLevels[curRarity] - 1;
+    if (curRarity === "legend" || curRarity === "mythic") curMaxLv = 100;
+
+    if (curRarity === "mythic") {
+      populateSelect("curLv", 1, 100);
+      populateSelect("curMastery", 10, 20);
+    } else if (curRarity === "legend") {
+      populateSelect("curLv", 0, 100);
+      populateSelect("curMastery", 0, 20);
+    } else {
+      populateSelect("curLv", 0, curMaxLv);
+    }
+
+    // --- 目標レベルの動的制御 ---
+
+    // 1. 現在の入力値を取得
+    const currentLvVal = parseInt(document.getElementById("curLv").value) || 0;
+    const currentMasteryVal = parseInt(document.getElementById("curMastery").value) || 0;
+
+    // 2. 目標レベルの開始位置(min)を計算
+    // 基本は「現在+1」
+    let tarLvMin = currentLvVal + 1;
+
+    // レジェンド・神話の場合は「現在レベル」から選択可能にする
+    if (curRarity === "legend" || curRarity === "mythic") {
+      tarLvMin = currentLvVal;
+    }
+
+    // 例外: 現在レジェンド→目標神話の場合は「1」から選択可能
+    if (curRarity === "legend" && tarRarity === "mythic") {
+      tarLvMin = 1;
+    }
+
+    // 3. 目標精錬レベルの開始位置(min)を計算
+    // 基本は「現在+1」
+    let tarMasteryMin = currentMasteryVal + 1;
+
+    // レジェンド・神話の場合は「現在レベル」から選択可能にする
+    if (curRarity === "legend" || curRarity === "mythic") {
+      tarMasteryMin = currentMasteryVal;
+    }
+
+    // 目標が神話の場合、精錬レベルは最低10以上が必要
+    if (tarRarity === "mythic") {
+      if (tarMasteryMin < 10) tarMasteryMin = 10;
+    }
+
+    // 4. 目標プルダウンの生成
+    if (tarRarity === "mythic") {
+      populateSelect("tarLv", tarLvMin, 100); 
+      populateSelect("tarMastery", tarMasteryMin, 20);
+    } else if (tarRarity === "legend") {
+      populateSelect("tarLv", tarLvMin, 100);
+      populateSelect("tarMastery", tarMasteryMin, 20);
+    } else {
+      const max = maxLevels[curRarity];
+      populateSelect("tarLv", tarLvMin, max);
+    }
+
+    // --- 表示・非表示の制御 ---
+    if (curRarity === "legend" || curRarity === "mythic") {
+      document.getElementById("curMasteryGroup").style.display = "block";
+    } else {
+      document.getElementById("curMasteryGroup").style.display = "none";
+    }
+
+    if (tarRarity === "legend" || tarRarity === "mythic") {
+      document.getElementById("tarMasteryGroup").style.display = "block";
+    } else {
+      document.getElementById("tarMasteryGroup").style.display = "none";
+    }
+
+    updateVisibility();
   }
-
-  let curMaxLv = maxLevels[curRarity] - 1; 
-  if (curRarity === "legend" || curRarity === "mythic") curMaxLv = 100;
-
-  if (curRarity === "mythic") {
-    populateSelect("curLv", 1, 100); 
-    populateSelect("curMastery", 10, 20);
-  } else if (curRarity === "legend") {
-    populateSelect("curLv", 0, 100);
-    populateSelect("curMastery", 0, 20);
-  } else {
-    populateSelect("curLv", 0, curMaxLv);
-  }
-
-  if (tarRarity === "mythic") {
-    populateSelect("tarLv", 1, 100, 100);
-    populateSelect("tarMastery", 10, 20);
-  } else if (tarRarity === "legend") {
-    populateSelect("tarLv", 0, 100, 100);
-    populateSelect("tarMastery", 0, 20);
-  } else {
-    populateSelect("tarLv", 1, maxLevels[curRarity], maxLevels[curRarity]);
-  }
-
-  if (curRarity === "legend" || curRarity === "mythic") {
-    document.getElementById("curMasteryGroup").style.display = "block";
-  } else {
-    document.getElementById("curMasteryGroup").style.display = "none";
-  }
-
-  if (tarRarity === "legend" || tarRarity === "mythic") {
-    document.getElementById("tarMasteryGroup").style.display = "block";
-  } else {
-    document.getElementById("tarMasteryGroup").style.display = "none";
-  }
-
-  updateVisibility();
-}
 
 function updateVisibility() {
   const curRarity = document.getElementById("curRarity").value;
@@ -557,7 +596,7 @@ function calculateGearCost() {
       totalWidget += cost.widget;
     }
 
-    // ★修正箇所: 精錬コスト計算
+    // 精錬コスト計算
     // レジェンド区間・神話区間を分けずに、現在の値から目標の値までを一括で計算
     for (let m = curMastery; m < tarMastery; m++) {
       if (m < masteryCost.length) {

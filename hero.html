@@ -255,7 +255,7 @@
     <div class="status-row">
       <div class="status-group">
         <label style="margin-top:0; font-size:0.8rem;">星 (Star)</label>
-        <select id="tarStar" onchange="toggleTargetTier()">
+        <select id="tarStar">
           <option value="0">0</option>
           <option value="1">1</option>
           <option value="2">2</option>
@@ -277,12 +277,12 @@
       </div>
     </div>
 
-    <button class="calc-btn" onclick="calculateHeroCost()">必要ピース数を計算</button>
+    <button class="calc-btn" onclick="calculateHeroCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea" style="display:none;">
       <div class="result-row">
         <span class="result-label">
-          <i id="resPieceIcon" class="fas fa-puzzle-piece piece-icon piece-ssr"></i> 必要ピース数
+          <i id="resPieceIcon" class="fas fa-puzzle-piece piece-icon piece-ssr"></i> 英雄の欠片
         </span>
         <span class="result-value" id="resShards">0</span>
       </div>
@@ -343,22 +343,84 @@ function updateRankColor() {
   else icon.classList.add("piece-r");
 }
 
-// 追加: 目標星が5の時にTier入力を非表示にする
-function toggleTargetTier() {
-  const starVal = document.getElementById("tarStar").value;
-  // 親のstatus-groupごと非表示にするため要素を取得
-  const tierSelect = document.getElementById("tarTier");
-  const tierGroup = tierSelect.parentElement; // div.status-group
+  // ★修正: 目標「星」の選択肢を更新する関数
+  // (現在レベルが変更された時のみ実行)
+  function updateTargetStarOptions() {
+    const curStar = parseInt(document.getElementById("curStar").value);
+    const curTier = parseInt(document.getElementById("curTier").value);
+    const tarStarSelect = document.getElementById("tarStar");
 
-  if (starVal === "5") {
-    // 星5なら非表示 & 値を0にリセット
-    tierGroup.style.display = "none";
-    tierSelect.value = "0";
-  } else {
-    // それ以外なら表示
-    tierGroup.style.display = "block";
+    // 値を保持しようとするが、範囲外になる場合は後で調整される
+    const prevTarStar = parseInt(tarStarSelect.value);
+
+    // 現在の段階が5(MAX)の場合、その星ではこれ以上強化できないため、次の星からスタート
+    let startStar = (curTier >= 5) ? curStar + 1 : curStar;
+    if (startStar > 5) startStar = 5; 
+
+    tarStarSelect.innerHTML = "";
+
+    for (let s = startStar; s <= 5; s++) {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.text = (s === 5) ? "5 (MAX)" : s;
+      tarStarSelect.appendChild(opt);
+    }
+
+    // 値の復元（範囲外なら先頭を選択）
+    if (prevTarStar >= startStar) {
+      tarStarSelect.value = prevTarStar;
+    } else {
+      tarStarSelect.selectedIndex = 0;
+    }
+
+    // 星が変わった可能性があるので、段階も連動して更新
+    updateTargetTierOptions();
   }
-}
+
+  // 目標「段階」の選択肢を更新する関数
+  // (星が変更された時、または現在レベル変更時に実行)
+  function updateTargetTierOptions() {
+    const curStar = parseInt(document.getElementById("curStar").value);
+    const curTier = parseInt(document.getElementById("curTier").value);
+    const tarStarSelect = document.getElementById("tarStar");
+    const tarTierSelect = document.getElementById("tarTier");
+    const tarTierGroup = document.getElementById("tarTierGroup");
+
+    const currentTarStar = parseInt(tarStarSelect.value);
+    const prevTarTier = parseInt(tarTierSelect.value);
+
+    tarTierSelect.innerHTML = "";
+
+    if (currentTarStar === 5) {
+      // 星5(MAX)なら段階は不要なので非表示＆0固定
+      tarTierGroup.style.display = "none";
+      const opt = document.createElement("option");
+      opt.value = 0;
+      opt.text = "0";
+      tarTierSelect.appendChild(opt);
+    } else {
+      tarTierGroup.style.display = "block";
+
+      // 目標星が現在星と同じなら「現在の段階+1」から、それ以外（上の星）なら「0」から
+      let startTier = (currentTarStar === curStar) ? curTier + 1 : 0;
+
+      for (let t = startTier; t <= 5; t++) {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.text = t;
+        tarTierSelect.appendChild(opt);
+      }
+
+      // 値の復元
+      if (prevTarTier >= startTier) {
+        tarTierSelect.value = prevTarTier;
+      } else {
+        if (tarTierSelect.options.length > 0) {
+          tarTierSelect.selectedIndex = 0;
+        }
+      }
+    }
+  }
 
 function calculateHeroCost() {
   const curStar = parseInt(document.getElementById("curStar").value);
@@ -379,9 +441,7 @@ function calculateHeroCost() {
     if (s > tarStar || (s === tarStar && t >= tarTier)) {
       break;
     }
-    if (s >= 5) {
-        break; 
-    }
+    if (s >= 5) { break; }
     if (t === 6) {
       s++;
       t = 0;
@@ -393,6 +453,7 @@ function calculateHeroCost() {
     t++;
   }
 
+  // 念のためのバリデーション（通常はプルダウン制御で発生しない）
   if (totalShards === 0 && (curStar > tarStar || (curStar === tarStar && curTier > tarTier))) {
     alert("目標は現在より高い状態に設定してください");
     return;
@@ -402,11 +463,22 @@ function calculateHeroCost() {
   document.getElementById("resultArea").style.display = "block";
 }
 
-// 初期化
-document.addEventListener('DOMContentLoaded', () => {
-  updateRankColor();
-  toggleTargetTier(); // 初回ロード時にもチェック実行
-});
+  // /----------------------------------// ------------------------------------------
+  // 初期化 (Initialization)
+  // ------------------------------------------
+  document.addEventListener('DOMContentLoaded', () => {
+    updateRankColor();
+
+    // 初回生成（新しい関数名を呼ぶ）
+    updateTargetStarOptions();
+
+    // 現在レベル変更時 -> 「目標の星」の範囲を再計算（連動して段階も更新される）
+    document.getElementById("curStar").addEventListener("change", updateTargetStarOptions);
+    document.getElementById("curTier").addEventListener("change", updateTargetStarOptions);
+
+    // 目標の星変更時 -> 「目標の段階」のみ再計算 (星プルダウン自体は再生成しない)
+    document.getElementById("tarStar").addEventListener("change", updateTargetTierOptions);
+  });
 
 </script>
 
