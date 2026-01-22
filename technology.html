@@ -249,36 +249,17 @@
     background: rgba(34, 211, 238, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
+
+    /* フレックスボックス設定 */
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 15px;
-  }
+    gap: 10px;
+    flex-wrap: wrap; /* 折り返しを許可 */
 
-  /* 備考テキスト用スタイル (追加) */
-  .speed-note {
-    font-size: 0.8rem;
-    color: var(--text-sub);
-    margin-top: 5px;
-    padding-left: 5px;
-    width: 100%;
-  }
-
-  /* .speed-container に flex-wrap を追加してレイアウト崩れを防ぐ */
-  .speed-container {
-    /* 既存のプロパティ */
-    margin-top: 20px;
-    padding: 15px;
-    background: rgba(34, 211, 238, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px; /* gapを調整 */
-
-    /* ★追加: 折り返しを許可 */
-    flex-wrap: wrap; 
+    /* コンテナからはみ出さないための設定 */
+    width: 100%; 
+    box-sizing: border-box; 
   }
 
   .speed-label {
@@ -294,15 +275,26 @@
     align-items: center;
     gap: 5px;
   }
+
   .speed-input-wrapper input {
     width: 100px;
     text-align: right;
     padding: 10px;
     font-weight: bold;
   }
+
   .speed-unit {
     font-weight: bold;
     color: var(--text-sub);
+  }
+
+  /* 備考テキスト用スタイル */
+  .speed-note {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    margin-top: 5px;
+    padding-left: 5px;
+    width: 100%;
   }
 
   footer { margin-top: auto; padding: 40px; width: 100%; text-align: center; color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em; }
@@ -360,7 +352,6 @@
       <p style="font-size:0.8rem; color:#64748b; margin-top:10px;">※計算したい項目にチェックを入れると、レベル選択が表示されます</p>
 
       <div id="academy-list-container"></div>
-    </div>
     </div>
 
   <div class="speed-container">
