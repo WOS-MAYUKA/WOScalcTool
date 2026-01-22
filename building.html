@@ -241,6 +241,84 @@
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+      /* --- 建造速度・バフ入力エリア用 --- */
+      .speed-container {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(34, 211, 238, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column; /* 縦並びに変更 */
+        gap: 15px;
+      }
+
+      .speed-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .speed-label {
+        font-weight: bold;
+        color: var(--accent-ice);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 100px;
+      }
+
+      .speed-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .speed-input-wrapper input {
+        width: 80px;
+        text-align: right;
+        padding: 8px;
+        font-weight: bold;
+      }
+      .speed-unit { font-weight: bold; color: var(--text-sub); }
+
+      /* 備考テキスト */
+      .speed-note {
+        font-size: 0.8rem;
+        color: var(--text-sub);
+        margin-top: -10px; /* 少し詰める */
+        padding-left: 5px;
+      }
+
+      /* 領主司令トグルボタン */
+      .toggle-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid var(--glass-border);
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--text-sub);
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s;
+        width: 100%; /* スマホで見やすく */
+        text-align: center;
+      }
+      .toggle-btn.active {
+        background: rgba(34, 211, 238, 0.2);
+        border-color: var(--accent-ice);
+        color: var(--accent-ice);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.1);
+      }
+
+      /* アグネスプルダウン */
+      .agnes-wrapper {
+        display: flex; align-items: center; gap: 10px; width: 100%;
+      }
+      .agnes-wrapper select {
+        flex: 1; padding: 8px;
+      }
+
   footer {
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
@@ -284,6 +362,36 @@
                 <label for="targetLevel">目標レベル</label>
                 <select id="targetLevel">
                     </select>
+            </div>
+        </div>
+        <div class="speed-container">
+            <div class="speed-row">
+                <span class="speed-label"><i class="fas fa-tachometer-alt"></i> 建造速度</span>
+                <div class="speed-input-wrapper">
+                    <input type="number" id="milSpeedVal" value="0" min="0" step="0.1">
+                    <span class="speed-unit">%</span>
+                </div>
+            </div>
+            <div class="speed-note">※各種バフを有効後に強化一覧から確認</div>
+
+            <div class="speed-row">
+                <button type="button" id="milLordCmd" class="toggle-btn" onclick="toggleLord(this, 'military')">
+                    <i class="fas fa-user-shield"></i> 領主司令: OFF
+                </button>
+            </div>
+
+            <div class="speed-row">
+                <div class="agnes-wrapper">
+                    <span class="speed-label" style="font-size:0.9rem;">アグネス(工程管理)</span>
+                    <select id="milAgnes">
+                        <option value="0">未解放 (0h)</option>
+                        <option value="2">Lv.1 (2h)</option>
+                        <option value="3">Lv.2 (3h)</option>
+                        <option value="4">Lv.3 (4h)</option>
+                        <option value="6">Lv.4 (6h)</option>
+                        <option value="8">Lv.5 (8h)</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -334,6 +442,37 @@
                 <label for="fcTargetLevel">目標レベル</label>
                 <select id="fcTargetLevel">
                     </select>
+            </div>
+        </div>
+        
+        <div class="speed-container">
+            <div class="speed-row">
+                <span class="speed-label"><i class="fas fa-tachometer-alt"></i> 建造速度</span>
+                <div class="speed-input-wrapper">
+                    <input type="number" id="fcSpeedVal" value="0" min="0" step="0.1">
+                    <span class="speed-unit">%</span>
+                </div>
+            </div>
+            <div class="speed-note">※各種バフを有効後に強化一覧から確認</div>
+
+            <div class="speed-row">
+                <button type="button" id="fcLordCmd" class="toggle-btn" onclick="toggleLord(this, 'fireCrystal')">
+                    <i class="fas fa-user-shield"></i> 領主司令: OFF
+                </button>
+            </div>
+
+            <div class="speed-row">
+                <div class="agnes-wrapper">
+                    <span class="speed-label" style="font-size:0.9rem;">アグネス(工程管理)</span>
+                    <select id="fcAgnes">
+                        <option value="0">未解放 (0h)</option>
+                        <option value="2">Lv.1 (2h)</option>
+                        <option value="3">Lv.2 (3h)</option>
+                        <option value="4">Lv.3 (4h)</option>
+                        <option value="6">Lv.4 (6h)</option>
+                        <option value="8">Lv.5 (8h)</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -1225,10 +1364,16 @@
     };
 
     // --- DOM ELEMENTS ---
+    // ★修正: 新しいID (milSpeedVal, milLordCmd, milAgnes など) を定義に追加
     const dom = {
         building: document.getElementById('buildingSelect'),
         currentLv: document.getElementById('currentLevel'),
         targetLv: document.getElementById('targetLevel'),
+        // --- 追加部分 START ---
+        speedVal: document.getElementById('milSpeedVal'),
+        lordCmd: document.getElementById('milLordCmd'),
+        agnes: document.getElementById('milAgnes'),
+        // --- 追加部分 END ---
         resMeat: document.getElementById('resMeat'),
         resWood: document.getElementById('resWood'),
         resCoal: document.getElementById('resCoal'),
@@ -1245,6 +1390,11 @@
         building: document.getElementById('fcBuildingSelect'),
         currentLv: document.getElementById('fcCurrentLevel'),
         targetLv: document.getElementById('fcTargetLevel'),
+        // --- 追加部分 START ---
+        speedVal: document.getElementById('fcSpeedVal'),
+        lordCmd: document.getElementById('fcLordCmd'),
+        agnes: document.getElementById('fcAgnes'),
+        // --- 追加部分 END ---
         resCrystal: document.getElementById('resFcCrystal'),
         resRefined: document.getElementById('resFcRefined'),
         rowRefined: document.getElementById('rowRfc'),
@@ -1257,6 +1407,23 @@
         reqBox: document.getElementById('reqFcBox'),
         resultContainer: document.getElementById('fcResultContainer')
     };
+
+    // 領主司令トグルボタンの制御関数
+    function toggleLord(btn, type) {
+        btn.classList.toggle('active');
+        const isActive = btn.classList.contains('active');
+
+        // ボタンの見た目を更新
+        if (isActive) {
+            btn.innerHTML = '<i class="fas fa-user-shield"></i> 領主司令: ON (+20%)';
+        } else {
+            btn.innerHTML = '<i class="fas fa-user-shield"></i> 領主司令: OFF';
+        }
+
+        // 即座に再計算を実行
+        if (type === 'military') calculate();
+        else calculateCrystal();
+    }
 
     // --- INITIALIZATION ---
     function init() {
@@ -1279,10 +1446,10 @@
         updateFcLevelOptions();
 
         // Listeners
-        // ★修正: 建物変更時は両方のレベルをリセット
+        // 建物変更時は両方のレベルをリセット
         dom.building.addEventListener('change', () => { updateLevelOptions(); hideResults(); });
 
-        // ★修正: 現在レベル変更時は、目標レベルの選択肢を更新する
+        // 現在レベル変更時は、目標レベルの選択肢を更新する
         dom.currentLv.addEventListener('change', () => { updateTargetOptions(); hideResults(); });
 
         dom.targetLv.addEventListener('change', hideResults);
@@ -1290,7 +1457,7 @@
         // FC側も同様
         fcDom.building.addEventListener('change', () => { updateFcLevelOptions(); hideFcResults(); });
 
-        // ★修正: FC現在レベル変更時に目標レベルを更新
+        // FC現在レベル変更時に目標レベルを更新
         fcDom.currentLv.addEventListener('change', () => { updateFcTargetOptions(); hideFcResults(); });
 
         fcDom.targetLv.addEventListener('change', hideFcResults);
@@ -1319,11 +1486,11 @@
             dom.currentLv.value = 0;
         }
 
-        // ★追加: 現在レベルに基づいて目標レベルを更新
+        // 現在レベルに基づいて目標レベルを更新
         updateTargetOptions();
     }
 
-    // ★新規追加: 目標レベルを動的に生成する関数
+    // 目標レベルを動的に生成する関数
     function updateTargetOptions() {
         const name = dom.building.value;
         const data = buildings[name];
@@ -1381,8 +1548,7 @@
         return formattedParts.join('<br>');
     }
     
-    // --- 2. 軍備施設の条件表示フォーマット変更 ---
-    // --- 軍備施設 計算ロジック ---
+    // --- 2. 軍備施設 計算ロジック ---
     function calculate() {
         const name = dom.building.value;
         const data = buildings[name];
@@ -1395,6 +1561,28 @@
             return;
         }
 
+        // --- 速度設定の取得 ---
+        // 1. 建造速度(%)
+        let speedPercent = 0;
+        const speedInput = dom.speedVal.value;
+        if (speedInput !== "") {
+            speedPercent = parseFloat(speedInput);
+            if (isNaN(speedPercent) || speedPercent < 0) {
+                alert("建造速度には0以上の数値を入力してください");
+                return;
+            }
+        }
+
+        // 2. 領主司令 (+20%)
+        // dom.lordCmd が定義されていないとここでエラーになります
+        if (dom.lordCmd.classList.contains('active')) {
+            speedPercent += 20;
+        }
+
+        // 3. アグネス減算時間 (時間 -> 秒変換)
+        const agnesHours = parseInt(dom.agnes.value) || 0;
+        const agnesSeconds = agnesHours * 3600;
+
         let totalMeat = 0;
         let totalWood = 0;
         let totalCoal = 0;
@@ -1402,7 +1590,7 @@
         let totalSeconds = 0;
         let requirements = [];
 
-        // 現在レベルの次の段階から目標レベルまでを加算
+        // 計算ループ
         for (let l = current + 1; l <= target; l++) {
             const row = data.find(d => d.lv === l);
             if (row) {
@@ -1410,14 +1598,22 @@
                 totalWood += row.w;
                 totalCoal += row.c;
                 totalIron += row.i;
-                totalSeconds += parseTime(row.t);
 
-                // 目標レベル到達時の条件を表示
+                // --- 時間計算 (段階ごとに計算) ---
+                let baseSec = parseTime(row.t);
+
+                // 1. 速度バフ反映 (切り上げ)
+                let reducedSec = Math.ceil(baseSec / (1 + (speedPercent / 100)));
+
+                // 2. アグネス減算 (0未満にはしない)
+                let finalStepSec = Math.max(0, reducedSec - agnesSeconds);
+
+                totalSeconds += finalStepSec;
+
+                // 条件表示
                 if (l === target) {
                     const formattedReq = formatRequirement(row.req);
-                    if (formattedReq) {
-                        requirements.push(formattedReq);
-                    }
+                    if (formattedReq) requirements.push(formattedReq);
                 }
             }
         }
@@ -1436,6 +1632,95 @@
         }
 
         dom.resultContainer.style.display = 'block';
+    }
+
+    // --- 3. 火晶施設 計算ロジック ---
+    function calculateCrystal() {
+        const name = fcDom.building.value;
+        const data = fcBuildings[name];
+        const currentId = fcDom.currentLv.value;
+        const targetId = fcDom.targetLv.value;
+
+        const currentIndex = getFcIndex(name, currentId);
+        const targetIndex = getFcIndex(name, targetId);
+
+        if (targetIndex <= currentIndex) {
+            alert("目標レベルは現在レベルより高く設定してください");
+            fcDom.resultContainer.style.display = 'none';
+            return;
+        }
+
+        // --- 速度設定の取得 ---
+        let speedPercent = 0;
+        const speedInput = fcDom.speedVal.value;
+        if (speedInput !== "") {
+            speedPercent = parseFloat(speedInput);
+            if (isNaN(speedPercent) || speedPercent < 0) {
+                alert("建造速度には0以上の数値を入力してください");
+                return;
+            }
+        }
+
+        if (fcDom.lordCmd.classList.contains('active')) {
+            speedPercent += 20;
+        }
+
+        const agnesHours = parseInt(fcDom.agnes.value) || 0;
+        const agnesSeconds = agnesHours * 3600;
+
+        let totalMeat = 0;
+        let totalWood = 0;
+        let totalCoal = 0;
+        let totalIron = 0;
+        let totalFc = 0;
+        let totalRfc = 0;
+        let totalSeconds = 0;
+        let requirements = [];
+
+        for (let i = currentIndex + 1; i <= targetIndex; i++) {
+            const row = data[i];
+            totalMeat += row.m;
+            totalWood += row.w;
+            totalCoal += row.c;
+            totalIron += row.i;
+            totalFc += row.fc;
+            totalRfc += (row.rfc || 0);
+
+            // --- 時間計算 ---
+            let baseSec = parseTime(row.t);
+            let reducedSec = Math.ceil(baseSec / (1 + (speedPercent / 100)));
+            let finalStepSec = Math.max(0, reducedSec - agnesSeconds);
+
+            totalSeconds += finalStepSec;
+
+            if (i === targetIndex) {
+                const formattedReq = formatRequirement(row.req);
+                if (formattedReq) requirements.push(formattedReq);
+            }
+        }
+
+        fcDom.resCrystal.textContent = totalFc.toLocaleString();
+        if (totalRfc > 0) {
+            fcDom.rowRefined.style.display = 'flex';
+            fcDom.resRefined.textContent = totalRfc.toLocaleString();
+        } else {
+            fcDom.rowRefined.style.display = 'none';
+        }
+
+        animateValue(fcDom.resMeat, totalMeat);
+        animateValue(fcDom.resWood, totalWood);
+        animateValue(fcDom.resCoal, totalCoal);
+        animateValue(fcDom.resIron, totalIron);
+        fcDom.resTime.textContent = formatTime(totalSeconds);
+
+        if (requirements.length === 0) {
+            fcDom.reqBox.style.display = 'none';
+        } else {
+            fcDom.reqBox.style.display = 'block';
+            fcDom.resReq.innerHTML = requirements.join('<br>');
+        }
+
+        fcDom.resultContainer.style.display = 'block';
     }
 
     // --- FIRE CRYSTAL LOGIC ---
@@ -1522,83 +1807,6 @@
 
         const data = fcBuildings[name];
         return data.findIndex(row => row.id === id);
-    }
-
-    // --- 3. 火晶施設の条件表示フォーマット変更 ---
-    // --- 火晶施設 計算ロジック ---
-    function calculateCrystal() {
-        const name = fcDom.building.value;
-        const data = fcBuildings[name];
-        const currentId = fcDom.currentLv.value;
-        const targetId = fcDom.targetLv.value;
-
-        // nameを引数に追加してインデックスを取得
-        const currentIndex = getFcIndex(name, currentId);
-        const targetIndex = getFcIndex(name, targetId);
-
-        if (targetIndex <= currentIndex) {
-            alert("目標レベルは現在レベルより高く設定してください");
-            fcDom.resultContainer.style.display = 'none';
-            return;
-        }
-
-        let totalMeat = 0;
-        let totalWood = 0;
-        let totalCoal = 0;
-        let totalIron = 0;
-        let totalFc = 0;
-        let totalRfc = 0;
-        let totalSeconds = 0;
-        let requirements = [];
-
-        // 現在の次の段階から目標までループ
-        for (let i = currentIndex + 1; i <= targetIndex; i++) {
-            const row = data[i];
-            totalMeat += row.m;
-            totalWood += row.w;
-            totalCoal += row.c;
-            totalIron += row.i;
-            totalFc += row.fc;
-            totalRfc += (row.rfc || 0);
-            totalSeconds += parseTime(row.t);
-
-            // 目標レベル到達時の条件を取得
-            if (i === targetIndex) {
-                const formattedReq = formatRequirement(row.req);
-                if (formattedReq) {
-                    requirements.push(formattedReq);
-                }
-            }
-        }
-
-        // --- calculateCrystal 関数内の末尾付近 ---
-
-        // 結果の描画
-        // ★修正: animateValueを使わず、直接 toLocaleString() でカンマ区切り表示にする
-        fcDom.resCrystal.textContent = totalFc.toLocaleString();
-
-        if (totalRfc > 0) {
-            fcDom.rowRefined.style.display = 'flex';
-            // ★修正: ここも同様に修正
-            fcDom.resRefined.textContent = totalRfc.toLocaleString();
-        } else {
-            fcDom.rowRefined.style.display = 'none';
-        }
-
-        animateValue(fcDom.resMeat, totalMeat);
-        animateValue(fcDom.resWood, totalWood);
-        animateValue(fcDom.resCoal, totalCoal);
-        animateValue(fcDom.resIron, totalIron);
-        fcDom.resTime.textContent = formatTime(totalSeconds);
-
-        if (requirements.length === 0) {
-            fcDom.reqBox.style.display = 'none';
-        } else {
-            fcDom.reqBox.style.display = 'block';
-            fcDom.resReq.innerHTML = requirements.join('<br>');
-        }
-
-        fcDom.resultContainer.style.display = 'block';
     }
 
     function animateValue(obj, end) {

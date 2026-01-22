@@ -241,6 +241,69 @@
   }
   .youtube-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   .video-caption { color: #22d3ee; font-size: 0.9rem; margin-top: 10px; font-weight: bold; }
+  
+  /* --- 研究速度入力エリア用 --- */
+  .speed-container {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(34, 211, 238, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+  }
+
+  /* 備考テキスト用スタイル (追加) */
+  .speed-note {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    margin-top: 5px;
+    padding-left: 5px;
+    width: 100%;
+  }
+
+  /* .speed-container に flex-wrap を追加してレイアウト崩れを防ぐ */
+  .speed-container {
+    /* 既存のプロパティ */
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(34, 211, 238, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px; /* gapを調整 */
+
+    /* ★追加: 折り返しを許可 */
+    flex-wrap: wrap; 
+  }
+
+  .speed-label {
+    font-weight: bold;
+    color: var(--accent-ice);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .speed-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .speed-input-wrapper input {
+    width: 100px;
+    text-align: right;
+    padding: 10px;
+    font-weight: bold;
+  }
+  .speed-unit {
+    font-weight: bold;
+    color: var(--text-sub);
+  }
 
   footer { margin-top: auto; padding: 40px; width: 100%; text-align: center; color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em; }
 </style>
@@ -298,6 +361,20 @@
 
       <div id="academy-list-container"></div>
     </div>
+    </div>
+
+  <div class="speed-container">
+    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+      <span class="speed-label">
+        <i class="fas fa-tachometer-alt"></i> 研究速度
+      </span>
+      <div class="speed-input-wrapper">
+        <input type="number" id="research-speed" value="0" min="0" step="0.1">
+        <span class="speed-unit">%</span>
+      </div>
+    </div>
+    <div class="speed-note">※各種バフを有効後に強化一覧から確認</div>
+  </div>
 
     <button class="calc-btn" onclick="calculate()">必要コストを計算</button>
 
@@ -328,7 +405,7 @@
       </div>
       <div class="result-row">
         <span class="result-label"><i class="fas fa-clock icon-time"></i> 研究時間</span>
-        <span class="result-value" id="res-time" style="font-size:1rem;">0h 0m</span>
+        <span class="result-value" id="res-time">0h 0m</span>
       </div>
     </div>
 
@@ -859,38 +936,48 @@ function getCost(category, params, targetLevel) {
  * ====================================================================
  */
 
-let currentTab = 'science';
+  /**
+   * ====================================================================
+   * UI操作・計算ロジック (重複しないよう、ここから下をすべて上書きしてください)
+   * ====================================================================
+   */
 
-// DOM要素
-const els = {
-  science: {
-    type: document.getElementById('science-type'),
-    item: document.getElementById('science-item'),
-    effect: document.getElementById('science-effect-display'),
-    rank: document.getElementById('science-rank'),
-    current: document.getElementById('science-current'),
-    target: document.getElementById('science-target')
-  },
-  academy: {
-    type: document.getElementById('academy-type'),
-    container: document.getElementById('academy-list-container')
-  },
-  result: {
-    area: document.getElementById('result-area'),
-    meat: document.getElementById('res-meat'),
-    wood: document.getElementById('res-wood'),
-    coal: document.getElementById('res-coal'),
-    iron: document.getElementById('res-iron'),
-    steel: document.getElementById('res-steel'), // 鋼材
-    fc: document.getElementById('res-fc'),
-    time: document.getElementById('res-time'),
-    rowFc: document.getElementById('row-fc')
-  }
-};
+  let currentTab = 'science';
 
-  // 初期化
+  // DOM要素
+  const els = {
+    science: {
+      type: document.getElementById('science-type'),
+      item: document.getElementById('science-item'),
+      effect: document.getElementById('science-effect-display'),
+      rank: document.getElementById('science-rank'),
+      current: document.getElementById('science-current'),
+      target: document.getElementById('science-target')
+    },
+    academy: {
+      type: document.getElementById('academy-type'),
+      container: document.getElementById('academy-list-container')
+    },
+    // 共通入力（研究速度）
+    common: {
+      speed: document.getElementById('research-speed')
+    },
+    result: {
+      area: document.getElementById('result-area'),
+      meat: document.getElementById('res-meat'),
+      wood: document.getElementById('res-wood'),
+      coal: document.getElementById('res-coal'),
+      iron: document.getElementById('res-iron'),
+      steel: document.getElementById('res-steel'),
+      fc: document.getElementById('res-fc'),
+      time: document.getElementById('res-time'),
+      rowFc: document.getElementById('row-fc')
+    }
+  };
+
+  // 初期化処理
   document.addEventListener('DOMContentLoaded', () => {
-    // タイプ（発展、経済など）の選択肢生成
+    // タイプ選択肢の生成
     Object.keys(GAME_DATA.science.types).forEach(type => {
       const opt = document.createElement('option');
       opt.value = type;
@@ -898,44 +985,42 @@ const els = {
       els.science.type.appendChild(opt);
     });
 
-    // ★追加: イベントリスナーの設定
-    // タイプ変更時 -> 項目リストとランクを更新
+    // イベントリスナーの設定
     els.science.type.addEventListener('change', updateScienceOptions);
 
-    // 項目変更時 -> ランク制限を再判定して更新
     els.science.item.addEventListener('change', () => {
-      updateScienceRankOptions(); // ランクを作り直す
-      updateScienceEffect();      // 効果表示更新
-      updateScienceLevels();      // レベル範囲更新
+      updateScienceRankOptions();
+      updateScienceEffect();
+      updateScienceLevels();
     });
 
-    // ランク変更時 -> レベル範囲更新
     els.science.rank.addEventListener('change', updateScienceLevels);
+    els.science.current.addEventListener('change', updateScienceTargetOptions);
 
     // 初回実行
     updateScienceOptions();
     renderAcademyList();
   });
 
-// タブ切り替え
-function switchTab(tabName) {
-  currentTab = tabName;
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  // タブ切り替え
+  function switchTab(tabName) {
+    currentTab = tabName;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-  if(tabName === 'science') {
-    document.querySelector('button[onclick="switchTab(\'science\')"]').classList.add('active');
-    document.getElementById('tab-science').classList.add('active');
-    els.result.rowFc.style.display = 'none';
-  } else {
-    document.querySelector('button[onclick="switchTab(\'academy\')"]').classList.add('active');
-    document.getElementById('tab-academy').classList.add('active');
-    els.result.rowFc.style.display = 'flex';
+    if(tabName === 'science') {
+      document.querySelector('button[onclick="switchTab(\'science\')"]').classList.add('active');
+      document.getElementById('tab-science').classList.add('active');
+      els.result.rowFc.style.display = 'none';
+    } else {
+      document.querySelector('button[onclick="switchTab(\'academy\')"]').classList.add('active');
+      document.getElementById('tab-academy').classList.add('active');
+      els.result.rowFc.style.display = 'flex';
+    }
+    els.result.area.style.display = 'none';
   }
-  els.result.area.style.display = 'none';
-}
 
-/* --- 科学研究ロジック --- */
+  /* --- 科学研究ロジック --- */
   function updateScienceOptions() {
     const type = els.science.type.value;
     const data = GAME_DATA.science.types[type];
@@ -946,68 +1031,56 @@ function switchTab(tabName) {
       els.science.item.add(new Option(itemObj.name, itemObj.name));
     });
 
-    // ★変更: ランク生成は専用関数に任せる
     updateScienceRankOptions();
-
     updateScienceEffect();
     updateScienceLevels();
   }
 
-  // ★新規追加: アイテムごとのランク制限を反映する関数
   function updateScienceRankOptions() {
     const type = els.science.type.value;
     const itemName = els.science.item.value;
     const data = GAME_DATA.science.types[type];
-
-    // 選択中のアイテムデータを取得
     const itemObj = data.items.find(i => i.name === itemName);
 
-    // 基本の全ランク配列
     let availableRanks = data.ranks;
 
-    // limitRank設定がある場合、配列をフィルタリングする
+    // ランク制限の反映
     if (itemObj && itemObj.limitRank) {
       const limitIndex = availableRanks.indexOf(itemObj.limitRank);
       if (limitIndex !== -1) {
-        // 制限ランクまでで切り取る (例: "Ⅲ"ならインデックス0～2まで)
         availableRanks = availableRanks.slice(0, limitIndex + 1);
       }
     }
 
-    // ランクプルダウンを生成
     els.science.rank.innerHTML = '';
     availableRanks.forEach(rank => {
       els.science.rank.add(new Option(rank, rank));
     });
   }
 
-function updateScienceEffect() {
-  const type = els.science.type.value;
-  const itemName = els.science.item.value;
-  const data = GAME_DATA.science.types[type];
-  const itemObj = data.items.find(i => i.name === itemName);
-  if (itemObj) {
-    els.science.effect.textContent = `効果：${itemObj.effect}`;
-  } else {
-    els.science.effect.textContent = "";
+  function updateScienceEffect() {
+    const type = els.science.type.value;
+    const itemName = els.science.item.value;
+    const data = GAME_DATA.science.types[type];
+    const itemObj = data.items.find(i => i.name === itemName);
+    if (itemObj) {
+      els.science.effect.textContent = `効果：${itemObj.effect}`;
+    } else {
+      els.science.effect.textContent = "";
+    }
   }
-}
 
   function updateScienceLevels() {
     const type = els.science.type.value;
     const rank = els.science.rank.value;
-    const itemName = els.science.item.value; // 選択中の項目名を取得
+    const itemName = els.science.item.value;
     const data = GAME_DATA.science.types[type];
-
-    // 個別のmax設定を確認
     const itemObj = data.items.find(i => i.name === itemName);
-    let maxLv = 0;
 
+    let maxLv = 0;
     if (itemObj && itemObj.max !== undefined) {
-      // 個別設定があればそれを優先
       maxLv = itemObj.max;
     } else {
-      // なければ従来のルール通り
       const rule = data.maxLevelRule;
       if (rule === 'combat-variable') {
         maxLv = GAME_DATA.science.maxLevels['combat-variable'][rank] || 3;
@@ -1036,11 +1109,9 @@ function updateScienceEffect() {
     const itemName = els.science.item.value;
     const currentLv = parseInt(els.science.current.value);
     const data = GAME_DATA.science.types[type];
-
-    // ★追加：個別のmax設定を確認
     const itemObj = data.items.find(i => i.name === itemName);
-    let maxLv = 0;
 
+    let maxLv = 0;
     if (itemObj && itemObj.max !== undefined) {
       maxLv = itemObj.max;
     } else {
@@ -1059,160 +1130,156 @@ function updateScienceEffect() {
       els.science.target.add(new Option(i, i));
     }
 
-    if (targetVal > currentLv && targetVal <= maxLv) els.science.target.value = targetVal;
+    if (targetVal > currentLv && targetVal <= maxLv) {
+      els.science.target.value = targetVal;
+    } else if (els.science.target.options.length > 0) {
+      els.science.target.selectedIndex = 0;
+    }
   }
 
-/* --- 戦争学園ロジック --- */
-function renderAcademyList() {
-  const type = els.academy.type.value;
-  const items = GAME_DATA.academy[type];
-  const container = els.academy.container;
+  /* --- 戦争学園ロジック --- */
+  function renderAcademyList() {
+    const type = els.academy.type.value;
+    const items = GAME_DATA.academy[type];
+    const container = els.academy.container;
 
-  container.innerHTML = ''; 
+    container.innerHTML = ''; 
 
-  items.forEach((item, index) => {
-    const div = document.createElement('div');
-    div.className = 'research-item-block';
+    items.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'research-item-block';
 
-    div.innerHTML = `
-      <div class="research-header">
-        <label style="margin:0; color:var(--text-main); cursor:pointer; display:flex; align-items:center; gap:10px; width:100%;">
-          <input type="checkbox" class="aca-check" data-index="${index}">
-          <span>${item.name}</span>
-          <span class="research-header-sub">(Max Lv.${item.max})</span>
-        </label>
-      </div>
-      <div class="aca-effect">${item.effect || ""}</div>
-      <div class="research-inputs">
-        <div style="flex:1;">
-          <label>現在レベル</label>
-          <select class="aca-curr" data-index="${index}"></select>
+      div.innerHTML = `
+        <div class="research-header">
+          <label style="margin:0; color:var(--text-main); cursor:pointer; display:flex; align-items:center; gap:10px; width:100%;">
+            <input type="checkbox" class="aca-check" data-index="${index}">
+            <span>${item.name}</span>
+            <span class="research-header-sub">(Max Lv.${item.max})</span>
+          </label>
         </div>
-        <div style="flex:1;">
-          <label>目標レベル</label>
-          <select class="aca-target" data-index="${index}"></select>
+        <div class="aca-effect">${item.effect || ""}</div>
+        <div class="research-inputs">
+          <div style="flex:1;">
+            <label>現在レベル</label>
+            <select class="aca-curr" data-index="${index}"></select>
+          </div>
+          <div style="flex:1;">
+            <label>目標レベル</label>
+            <select class="aca-target" data-index="${index}"></select>
+          </div>
         </div>
-      </div>
-    `;
-    container.appendChild(div);
+      `;
+      container.appendChild(div);
 
-    const currSelect = div.querySelector('.aca-curr');
-    const targetSelect = div.querySelector('.aca-target');
-    const maxLv = item.max;
+      const currSelect = div.querySelector('.aca-curr');
+      const targetSelect = div.querySelector('.aca-target');
+      const maxLv = item.max;
 
-    for(let i = 0; i < maxLv; i++) {
-      currSelect.add(new Option(i, i));
-    }
-
-    const updateTarget = () => {
-      const currentLv = parseInt(currSelect.value);
-      const prevTarget = parseInt(targetSelect.value);
-      targetSelect.innerHTML = '';
-      for(let i = currentLv + 1; i <= maxLv; i++) {
-        targetSelect.add(new Option(i, i));
+      for(let i = 0; i < maxLv; i++) {
+        currSelect.add(new Option(i, i));
       }
-      if(prevTarget > currentLv && prevTarget <= maxLv) targetSelect.value = prevTarget;
-    };
 
-    updateTarget();
-    currSelect.addEventListener('change', updateTarget);
+      const updateTarget = () => {
+        const currentLv = parseInt(currSelect.value);
+        const prevTarget = parseInt(targetSelect.value);
+        targetSelect.innerHTML = '';
+        for(let i = currentLv + 1; i <= maxLv; i++) {
+          targetSelect.add(new Option(i, i));
+        }
+        if(prevTarget > currentLv && prevTarget <= maxLv) {
+          targetSelect.value = prevTarget;
+        } else if (targetSelect.options.length > 0) {
+          targetSelect.selectedIndex = 0;
+        }
+      };
 
-    const checkbox = div.querySelector('.aca-check');
-    checkbox.addEventListener('change', function() {
-      if(this.checked) div.classList.add('active');
-      else div.classList.remove('active');
+      updateTarget();
+      currSelect.addEventListener('change', updateTarget);
+
+      const checkbox = div.querySelector('.aca-check');
+      checkbox.addEventListener('change', function() {
+        if(this.checked) div.classList.add('active');
+        else div.classList.remove('active');
+      });
     });
-  });
-}
+  }
 
-/* --- 共通計算処理 --- */
-function calculate() {
-  let total = { meat: 0, wood: 0, coal: 0, iron: 0, steel: 0, time: 0, fc: 0 };
+  /* --- 計算実行 (研究速度反映版) --- */
+  function calculate() {
+    let total = { meat: 0, wood: 0, coal: 0, iron: 0, steel: 0, time: 0, fc: 0 };
 
-  if (currentTab === 'science') {
-    const type = els.science.type.value;
-    const itemName = els.science.item.value; 
-    const rank = els.science.rank.value;
-    const startLv = parseInt(els.science.current.value);
-    const endLv = parseInt(els.science.target.value);
+    // 研究速度の取得とバリデーション
+    const speedInput = els.common.speed.value;
+    let speedMultiplier = 1;
 
-    if (!isNaN(startLv) && !isNaN(endLv) && endLv > startLv) {
-      for (let lv = startLv + 1; lv <= endLv; lv++) {
-        const cost = getCost('science', { type, item: itemName, rank }, lv);
-        addCost(total, cost);
+    if (speedInput !== "") {
+      const speedPercent = parseFloat(speedInput);
+      if (isNaN(speedPercent)) {
+        alert("研究速度には正しい数値を入力してください");
+        return;
       }
+      if (speedPercent < 0) {
+        alert("研究速度には0以上の数値を入力してください");
+        return;
+      }
+      // 時間 = 元の時間 / (1 + 速度%/100)
+      speedMultiplier = 1 + (speedPercent / 100);
     }
 
-  } else {
-    const checkboxes = document.querySelectorAll('.aca-check:checked');
-    if (checkboxes.length === 0) {
-      alert("研究項目を選択してください（チェックボックスをON）");
-      return;
-    }
-
-    checkboxes.forEach(chk => {
-      const block = chk.closest('.research-item-block');
-      const startLv = parseInt(block.querySelector('.aca-curr').value);
-      const endLv = parseInt(block.querySelector('.aca-target').value);
-      const index = chk.dataset.index;
-      const type = els.academy.type.value;
-      const itemName = GAME_DATA.academy[type][index].name;
+    if (currentTab === 'science') {
+      const type = els.science.type.value;
+      const itemName = els.science.item.value; 
+      const rank = els.science.rank.value;
+      const startLv = parseInt(els.science.current.value);
+      const endLv = parseInt(els.science.target.value);
 
       if (!isNaN(startLv) && !isNaN(endLv) && endLv > startLv) {
         for (let lv = startLv + 1; lv <= endLv; lv++) {
-          const cost = getCost('academy', { type, item: itemName }, lv);
-          addCost(total, cost);
+          const cost = getCost('science', { type, item: itemName, rank }, lv);
+
+          // 時間計算 (切り上げ)
+          const baseSeconds = parseTime(cost.time);
+          const realSeconds = Math.ceil(baseSeconds / speedMultiplier);
+
+          addCost(total, cost, realSeconds);
         }
       }
-    });
-  }
 
-  renderResult(total);
-}
+    } else {
+      const checkboxes = document.querySelectorAll('.aca-check:checked');
+      if (checkboxes.length === 0) {
+        alert("研究項目を選択してください（チェックボックスをON）");
+        return;
+      }
 
-  /**
-   * 時間文字列 ("1d 02:30:00" など) を秒数に変換する関数
-   */
-  function parseTime(input) {
-    if (typeof input === 'number') return input; // 数値ならそのまま返す
-    if (!input) return 0;
+      checkboxes.forEach(chk => {
+        const block = chk.closest('.research-item-block');
+        const startLv = parseInt(block.querySelector('.aca-curr').value);
+        const endLv = parseInt(block.querySelector('.aca-target').value);
+        const index = chk.dataset.index;
+        const type = els.academy.type.value;
+        const itemName = GAME_DATA.academy[type][index].name;
 
-    let d = 0, h = 0, m = 0, s = 0;
+        if (!isNaN(startLv) && !isNaN(endLv) && endLv > startLv) {
+          for (let lv = startLv + 1; lv <= endLv; lv++) {
+            const cost = getCost('academy', { type, item: itemName }, lv);
 
-    // "1d 02:00:00" のような形式（dが含まれる場合）
-    if (input.includes("d")) {
-      // "d" を ":" に置換し、スペースを削除して分解
-      const parts = input.replace("d", ":").replace(/\s+/g, "").split(":");
-      d = parseInt(parts[0]) || 0;
-      h = parseInt(parts[1]) || 0;
-      m = parseInt(parts[2]) || 0;
-      s = parseInt(parts[3]) || 0;
-    } 
-    // "02:30:00" のような形式（:が2つ = 時:分:秒）
-    else if (input.split(":").length === 3) {
-      const parts = input.split(":");
-      h = parseInt(parts[0]) || 0;
-      m = parseInt(parts[1]) || 0;
-      s = parseInt(parts[2]) || 0;
-    }
-    // "30:00" のような形式（:が1つ = 分:秒）
-    else if (input.split(":").length === 2) {
-      const parts = input.split(":");
-      m = parseInt(parts[0]) || 0;
-      s = parseInt(parts[1]) || 0;
+            // 時間計算 (切り上げ)
+            const baseSeconds = parseTime(cost.time);
+            const realSeconds = Math.ceil(baseSeconds / speedMultiplier);
+
+            addCost(total, cost, realSeconds);
+          }
+        }
+      });
     }
 
-    // 合計秒数を返す
-    return (d * 86400) + (h * 3600) + (m * 60) + s;
+    renderResult(total);
   }
 
-  /**
-   * データを参照してコストを取得する関数（ランク対応版）
-   */
+  // データ取得
   function getCost(category, params, targetLevel) {
-    let dbKey = params.item; // 基本はアイテム名そのまま
-
-    // 科学研究の場合、キー名にランクを付与 (例: "工具改良_Ⅰ")
+    let dbKey = params.item; 
     if (category === 'science') {
       dbKey = `${params.item}_${params.rank}`;
     }
@@ -1220,71 +1287,66 @@ function calculate() {
     const itemData = COST_DB[dbKey];
     const emptyCost = { meat: 0, wood: 0, coal: 0, iron: 0, steel: 0, time: 0, fc: 0 };
 
-    if (!itemData) {
-      return emptyCost;
-    }
+    if (!itemData) return emptyCost;
 
     const index = targetLevel - 1;
-
-    if (itemData[index]) {
-      return itemData[index];
-    } else {
-      // データ不足
-      return emptyCost;
-    }
+    return itemData[index] || emptyCost;
   }
 
-  /**
-   * コストを加算する関数（時間の変換処理つき）
-   */
-  function addCost(total, cost) {
+  // 時間パース
+  function parseTime(input) {
+    if (typeof input === 'number') return input;
+    if (!input) return 0;
+
+    let d = 0, h = 0, m = 0, s = 0;
+    if (input.includes("d")) {
+      const parts = input.replace("d", ":").replace(/\s+/g, "").split(":");
+      d = parseInt(parts[0]) || 0;
+      h = parseInt(parts[1]) || 0;
+      m = parseInt(parts[2]) || 0;
+      s = parseInt(parts[3]) || 0;
+    } else if (input.split(":").length === 3) {
+      const parts = input.split(":");
+      h = parseInt(parts[0]) || 0;
+      m = parseInt(parts[1]) || 0;
+      s = parseInt(parts[2]) || 0;
+    } else if (input.split(":").length === 2) {
+      const parts = input.split(":");
+      m = parseInt(parts[0]) || 0;
+      s = parseInt(parts[1]) || 0;
+    }
+    return (d * 86400) + (h * 3600) + (m * 60) + s;
+  }
+
+  // コスト加算
+  function addCost(total, cost, seconds) {
     total.meat += cost.meat || 0;
     total.wood += cost.wood || 0;
     total.coal += cost.coal || 0;
     total.iron += cost.iron || 0;
     total.steel += cost.steel || 0;
     total.fc += cost.fc || 0;
-
-    // 時間を秒数に変換して加算
-    total.time += parseTime(cost.time);
+    total.time += seconds;
   }
 
-  /**
-   * 数値を K (千), M (百万) 形式に変換する関数
-   */
+  // 数値フォーマット
   function formatNum(num) {
     if (num === 0) return "0";
-
-    if (num >= 1000000000) {
-      // 1G (10億) 以上
-      return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'G';
-    }
-    if (num >= 1000000) {
-      // 1M (100万) 以上
-      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-    }
-    if (num >= 1000) {
-      // 1K (千) 以上
-      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-    }
-
+    if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'G';
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
     return num.toLocaleString();
   }
 
-  /**
-   * 結果を表示する関数 (資源はK/M表記、火晶はそのまま)
-   */
+  // 結果表示
   function renderResult(total) {
     els.result.meat.textContent = formatNum(total.meat);
     els.result.wood.textContent = formatNum(total.wood);
     els.result.coal.textContent = formatNum(total.coal);
     els.result.iron.textContent = formatNum(total.iron);
     els.result.steel.textContent = formatNum(total.steel);
-
-    // 火晶微粒子は K/M変換せず、そのままカンマ区切りで表示
     els.result.fc.textContent = total.fc.toLocaleString();
 
-    // --- 時間計算 ---
     const totalSec = total.time;
     const d = Math.floor(totalSec / 86400);
     const h = Math.floor((totalSec % 86400) / 3600);
@@ -1298,7 +1360,6 @@ function calculate() {
     if (s > 0 || timeStr === "") timeStr += `${s}s`;
 
     els.result.time.textContent = timeStr;
-
     els.result.area.style.display = 'block';
     els.result.area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
