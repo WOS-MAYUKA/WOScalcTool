@@ -253,6 +253,20 @@
     line-height: 1.8; text-align: center;
   }
   .footer-disclaimer p { margin: 0 0 10px 0; }
+
+  /* トップへ戻るボタン */
+  #page-top-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    width: 50px; height: 50px; background: rgba(34, 211, 238, 0.2);
+    border: 1px solid var(--accent-ice); border-radius: 50%;
+    color: var(--accent-ice); font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; pointer-events: none; transition: 0.3s;
+    backdrop-filter: blur(5px);
+  }
+  #page-top-btn.show { opacity: 1; pointer-events: auto; }
+  #page-top-btn:hover { background: rgba(34, 211, 238, 0.4); transform: translateY(-3px); }
+  
 </style>
 </head>
 <body>
@@ -454,7 +468,8 @@
     </section>
 
     <div class="footer-profile">
-      <img src="https://wos-calc.com/picture/prof.jpeg" alt="Mayuka Profile Icon" class="profile-img">
+   <img src="https://wos-calc.com/picture/prof.jpeg" alt="Mayuka Profile Icon" class="profile-img" loading="lazy">
+
       <div class="profile-info">
           <p class="profile-title">SITE OWNER / YouTuber</p>
           <p class="profile-name">MAYUKA</p>
@@ -496,22 +511,44 @@
     &copy; 2026 WOS Tools Created by MAYUKA
   </footer>
 
+  <div id="page-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">
+    <i class="fas fa-chevron-up"></i>
+  </div>
+
   <script>
-    
+    // スクロール検知でボタン表示
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('page-top-btn');
+      if (window.scrollY > 300) {
+        btn.classList.add('show');
+      } else {
+        btn.classList.remove('show');
+      }
+    });
+  </script>
+
+  <script>
     // URLコピー機能
     function copyUrl() {
-      const urlToCopy = "https://wos-calc.com"; // コピーしたいURLを指定
+      const urlToCopy = "https://wos-calc.com";
       navigator.clipboard.writeText(urlToCopy)
-        .then(() => {
-          alert("URLをコピーしました！\nDiscordやSNSに貼り付けてシェアしてください。");
-        })
-        .catch(err => {
-          console.error('コピーに失敗しました', err);
-        });
+        .then(() => alert("URLをコピーしました！\nDiscordやSNSに貼り付けてシェアしてください。"))
+        .catch(err => console.error('コピーに失敗しました', err));
     }
 
-    // フィルタ機能
+    // スクロール検知でボタン表示
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('page-top-btn');
+      if (window.scrollY > 300) btn.classList.add('show');
+      else btn.classList.remove('show');
+    });
+
+    /* -------------------------------------------------------
+       ▼ DOM読み込み完了後の処理まとめ
+       ------------------------------------------------------- */
     document.addEventListener('DOMContentLoaded', () => {
+
+      // 1. フィルタ機能
       const btns = document.querySelectorAll('.filter-btn');
       const cards = document.querySelectorAll('.tool-card[data-category]');
       btns.forEach(btn => {
@@ -520,16 +557,66 @@
           btn.classList.add('active');
           const filter = btn.getAttribute('data-filter');
           cards.forEach(card => {
-            if (filter === 'all' || card.getAttribute('data-category') === filter) {
-              card.classList.remove('hidden');
-            } else {
-              card.classList.add('hidden');
-            }
+            if (filter === 'all' || card.getAttribute('data-category') === filter) card.classList.remove('hidden');
+            else card.classList.add('hidden');
           });
+          // 計測イベント送信
+          if (typeof gtag === 'function') {
+            gtag('event', 'click_filter', { 'event_category': 'ui_interaction', 'event_label': btn.innerText });
+          }
         });
       });
+
+      // 2. ツールカードのクリック計測
+      document.querySelectorAll('.tool-card').forEach(card => {
+        card.addEventListener('click', () => {
+          if (typeof gtag === 'function') {
+            gtag('event', 'select_tool', {
+              'event_category': 'calculator',
+              'event_label': card.querySelector('.card-title').innerText
+            });
+          }
+        });
+      });
+
+      // 3. コミュニティリンク計測
+      document.querySelectorAll('.comm-link').forEach(link => {
+        link.addEventListener('click', () => {
+          if (typeof gtag === 'function') {
+            gtag('event', 'click_community', {
+              'event_category': 'outbound',
+              'event_label': link.querySelector('div > div:first-child').innerText
+            });
+          }
+        });
+      });
+
+      // 4. 動画リンク計測
+      const videoMoreLink = document.querySelector('#featured-video a');
+      if(videoMoreLink) {
+        videoMoreLink.addEventListener('click', () => {
+          if (typeof gtag === 'function') {
+            gtag('event', 'click_video_more', { 'event_category': 'engagement', 'event_label': 'Latest Video Link' });
+          }
+        });
+      }
+
+      // 5. シェアボタン計測
+      document.querySelectorAll('.share-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          let shareMethod = 'unknown';
+          if (btn.classList.contains('btn-x')) shareMethod = 'X (Twitter)';
+          else if (btn.classList.contains('btn-line')) shareMethod = 'LINE';
+          else if (btn.classList.contains('btn-copy')) shareMethod = 'Copy URL';
+
+          if (typeof gtag === 'function') {
+            gtag('event', 'share', { 'method': shareMethod, 'content_type': 'website', 'item_id': 'wos-calc-home' });
+          }
+        });
+      });
+
     });
   </script>
-
+  
 </body>
 </html>
