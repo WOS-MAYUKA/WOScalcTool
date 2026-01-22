@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIPコスト計算機 | WOS Tools</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* --- 共通デザイン定義 (既存ツールと統一) --- */
+  :root {
+    --bg-deep: #020617;
+    --glass-surface: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --accent-ice: #22d3ee;
+    --accent-fire: #f97316;
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+    --gold: #fbbf24; /* VIP用の金色 */
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* 背景設定 */
+  .bg-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2;
+    background-image: url('image.png'); /* 共通背景画像 */
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.6) contrast(1.1) blur(2px);
+  }
+  .bg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 90%);
+    pointer-events: none;
+  }
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj48Y2lyY2xlIGN4PSI1IiBjeT0iNSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+PC9zdmc+');
+    animation: snow 25s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 50px 500px; } }
+
+  /* コンテナ */
+  .container {
+    position: relative; z-index: 1; width: 100%; max-width: 800px;
+    padding: 40px 20px; box-sizing: border-box;
+  }
+
+  /* ナビゲーション */
+  .nav-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-sub); text-decoration: none;
+    margin-bottom: 30px; transition: 0.3s; font-size: 0.9rem;
+  }
+  .nav-back:hover { color: var(--accent-ice); transform: translateX(-5px); }
+
+  /* カードデザイン */
+  .calc-card {
+    background: var(--glass-surface);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  h2 {
+    text-align: center; font-size: 1.8rem; margin: 0 0 30px 0;
+    color: var(--text-main); letter-spacing: 0.1em;
+    text-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 20px;
+  }
+
+  label {
+    display: block; margin-top: 20px; margin-bottom: 8px;
+    font-weight: 700; font-size: 0.9rem; color: var(--accent-ice);
+    letter-spacing: 0.05em;
+  }
+
+  /* 入力フォーム */
+  select, input {
+    width: 100%; padding: 14px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-main); font-size: 16px;
+    box-sizing: border-box; transition: 0.3s;
+    appearance: none; -webkit-appearance: none;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent-ice); outline: none;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* ポイント入力用 */
+  .points-input-wrapper {
+    position: relative;
+    display: flex; align-items: center;
+  }
+  .points-input-wrapper input {
+    padding-right: 40px; text-align: right; font-family: monospace; font-size: 1.1rem;
+  }
+  .points-unit {
+    position: absolute; right: 15px; color: var(--text-sub); font-size: 0.9rem; font-weight: bold;
+  }
+
+  /* 計算ボタン */
+  button.calc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent-ice), #0ea5e9);
+    color: #fff; padding: 18px; border: none; border-radius: 50px;
+    font-size: 1.1rem; font-weight: bold; margin-top: 40px;
+    cursor: pointer; transition: 0.3s; letter-spacing: 0.1em;
+    box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+  }
+  button.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+  }
+  button.calc-btn:active { transform: scale(0.98); }
+
+  /* 結果表示エリア */
+  .result-container {
+    margin-top: 40px; background-color: rgba(0,0,0,0.3);
+    border-radius: 12px; padding: 25px;
+    border: 1px solid var(--accent-ice);
+    box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
+    animation: fadeIn 0.5s ease;
+    display: none;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px; padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .result-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .result-label { font-size: 0.95rem; color: var(--text-sub); display: flex; align-items: center; gap: 10px; }
+  .result-value {
+    font-size: 1.4rem; font-weight: 800; color: var(--accent-ice);
+    font-family: "Helvetica Neue", sans-serif;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  }
+
+  .icon-vip { color: var(--gold); }
+  .icon-yen { color: #facc15; }
+
+  /* YouTube埋め込み */
+  .youtube-wrapper { width: 100%; max-width: 800px; margin: 40px auto; text-align: center; }
+  .youtube-container {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    background: #000; border: 1px solid #22d3ee; border-radius: 12px;
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.2); overflow: hidden;
+  }
+  .youtube-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .video-caption { color: #22d3ee; font-size: 0.9rem; margin-top: 10px; font-weight: bold; }
+
+  footer { margin-top: auto; padding: 40px; width: 100%; text-align: center; color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+<div class="snow-container"></div>
+
+<div class="container">
+  <a href="index.html" class="nav-back"><i class="fas fa-chevron-left"></i> トップページに戻る</a>
+
+  <div class="calc-card">
+    <h2>VIPコスト計算機</h2>
+
+    <div style="display: flex; gap: 20px;">
+      <div style="flex:1;">
+        <label>現在ランク</label>
+        <select id="currentRank">
+          </select>
+      </div>
+      <div style="flex:1;">
+        <label>目標ランク</label>
+        <select id="targetRank">
+          </select>
+      </div>
+    </div>
+
+    <label>現在のVIP経験値</label>
+    <div class="points-input-wrapper">
+      <input type="number" id="currentPoints" placeholder="0" min="0">
+      <span class="points-unit">XP</span>
+    </div>
+    <p style="font-size:0.8rem; color:var(--text-sub); margin-top:5px;">
+      ※VIP画面で確認できる「VIP経験値」を入力してください。
+    </p>
+
+    <button class="calc-btn" onclick="calculateVIP()">必要コストを計算</button>
+
+    <div class="result-container" id="resultArea">
+      <div class="result-row">
+        <span class="result-label">
+          <i class="fas fa-crown icon-vip"></i> VIP経験値
+        </span>
+        <span class="result-value" id="resPoints">0</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">
+          <i class="fas fa-yen-sign icon-yen"></i> チャージ額
+        </span>
+        <span class="result-value" id="resCost">0</span>
+      </div>
+      <p style="font-size:0.75rem;
+        color:var(--text-sub);text-align:right;margin:0;">
+        ※2500XP=¥800で換算した概算です
+        </p>
+    </div>
+
+  </div>
+</div>
+
+<div class="youtube-wrapper">
+  <div class="youtube-container">
+    <iframe 
+      src="https://www.youtube.com/embed/7_BXJuMGehw?rel=0" 
+      title="YouTube video player" 
+      frameborder="0" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+      allowfullscreen>
+    </iframe>
+  </div>
+  <p class="video-caption">▲関連動画：寒霜惑星解放！</p>
+</div>
+
+<footer>
+  &copy; 2026 WOS Tools Created by MAYUKA
+</footer>
+
+<script>
+// ==========================================
+// データ定義 (VIP Data)
+// ==========================================
+// 累積必要ポイント
+  // ==========================================
+  // データ定義 (各レベルごとの必要経験値)
+  // ==========================================
+  // キー: 現在のランク, 値: 次のランクへ上がるために必要な経験値
+  const VIP_REQ = {
+    1: 2500,      // VIP 1 -> 2
+    2: 5000,      // VIP 2 -> 3
+    3: 12500,     // VIP 3 -> 4
+    4: 30000,     // VIP 4 -> 5
+    5: 40000,     // VIP 5 -> 6
+    6: 60000,     // VIP 6 -> 7
+    7: 100000,    // VIP 7 -> 8
+    8: 350000,    // VIP 8 -> 9
+    9: 600000,    // VIP 9 -> 10
+    10: 1200000,  // VIP 10 -> 11
+    11: 2400000   // VIP 11 -> 12
+  };
+
+// 課金レート (2500ポイント = 800円)
+const POINTS_PER_UNIT = 2500;
+const COST_PER_UNIT = 800;
+
+// ==========================================
+// 初期化 & 動的制御
+// ==========================================
+
+const els = {
+  curRank: document.getElementById('currentRank'),
+  tarRank: document.getElementById('targetRank'),
+  curPoints: document.getElementById('currentPoints'),
+  resArea: document.getElementById('resultArea'),
+  resPoints: document.getElementById('resPoints'),
+  resCost: document.getElementById('resCost')
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 現在ランク (1〜11) の生成
+  for (let i = 1; i <= 11; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${i}`;
+    els.curRank.appendChild(opt);
+  }
+
+  // 初期実行：目標ランクの生成
+  updateTargetOptions();
+
+  // イベントリスナー
+  els.curRank.addEventListener('change', updateTargetOptions);
+});
+
+// 目標ランクリストの更新
+function updateTargetOptions() {
+  const currentVal = parseInt(els.curRank.value);
+  const prevTarget = parseInt(els.tarRank.value);
+
+  els.tarRank.innerHTML = '';
+
+  // 現在+1 〜 12 まで生成
+  for (let i = currentVal + 1; i <= 12; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${i}`;
+    els.tarRank.appendChild(opt);
+  }
+
+  // 選択状態の復元 (範囲内であれば維持、なければ先頭)
+  if (prevTarget > currentVal && prevTarget <= 12) {
+    els.tarRank.value = prevTarget;
+  } else if (els.tarRank.options.length > 0) {
+    els.tarRank.selectedIndex = 0;
+  }
+}
+
+  // ==========================================
+  // 計算ロジック
+  // ==========================================
+  function calculateVIP() {
+    const currentLv = parseInt(els.curRank.value);
+    const targetLv = parseInt(els.tarRank.value);
+
+    // 入力された現在ポイント (未入力は0)
+    let currentProgress = parseInt(els.curPoints.value);
+    if (isNaN(currentProgress) || currentProgress < 0) {
+      currentProgress = 0;
+    }
+
+    // エラーチェック
+    if (targetLv <= currentLv) {
+      alert("目標ランクは現在ランクより高く設定してください");
+      return;
+    }
+
+    // 累計必要ポイントの計算
+    // 現在ランクから目標ランクの1つ手前まで、各段階の必要経験値を足し上げる
+    let totalNeeded = 0;
+    for (let i = currentLv; i < targetLv; i++) {
+      totalNeeded += (VIP_REQ[i] || 0);
+    }
+
+    // 不足ポイント = (区間の合計必要経験値) - (現在の進捗ポイント)
+    let missingPts = totalNeeded - currentProgress;
+
+    // 万が一マイナスになった場合 (入力ポイントが必要経験値を上回っている場合など)
+    if (missingPts < 0) missingPts = 0;
+
+    // 金額計算 (概算: 2500pt = 800円 -> 1pt = 0.32円)
+    const estimatedCost = Math.ceil((missingPts / POINTS_PER_UNIT) * COST_PER_UNIT);
+
+    // 結果表示
+    els.resPoints.textContent = missingPts.toLocaleString();
+    els.resCost.textContent = "¥ " + estimatedCost.toLocaleString();
+
+    els.resArea.style.display = 'block';
+    els.resArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+</script>
+</body>
+</html>
