@@ -262,6 +262,22 @@
     box-sizing: border-box; 
   }
 
+  .speed-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .speed-row:last-child {
+    margin-bottom: 0;
+  }
+
+  /* スマホ表示調整 */
+  @media (max-width: 480px) {
+    .speed-input-wrapper input { width: 80px; }
+  }
+
   .speed-label {
     font-weight: bold;
     color: var(--accent-ice);
@@ -354,18 +370,42 @@
       <div id="academy-list-container"></div>
     </div>
 
-  <div class="speed-container">
-    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-      <span class="speed-label">
-        <i class="fas fa-tachometer-alt"></i> 研究速度
-      </span>
-      <div class="speed-input-wrapper">
-        <input type="number" id="research-speed" value="0" min="0" step="0.1">
-        <span class="speed-unit">%</span>
+    <div class="speed-container">
+      <div class="speed-row">
+        <span class="speed-label" style="white-space: nowrap;">
+          <i class="fas fa-tachometer-alt"></i> 研究速度
+        </span>
+        <div class="speed-input-wrapper">
+          <input type="number" id="research-speed" value="0" min="0" step="0.1">
+          <span class="speed-unit">%</span>
+        </div>
       </div>
+
+      <div class="speed-row" style="flex-wrap: nowrap; gap: 5px;">
+
+        <span class="speed-label" style="white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">
+          ヴァレリア(出撃準備)
+        </span>
+
+        <div class="speed-input-wrapper" style="flex: 1; justify-content: flex-end; min-width: 0;">
+          <select id="valeria-bonus" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+            <option value="1.0">未解放 (0%)</option>
+            <option value="1.02">Lv.1 (2%)</option>
+            <option value="1.04">Lv.2 (4%)</option>
+            <option value="1.06">Lv.3 (6%)</option>
+            <option value="1.08">Lv.4 (8%)</option>
+            <option value="1.10">Lv.5 (10%)</option>
+            <option value="1.12">Lv.6 (12%)</option>
+            <option value="1.14">Lv.7 (14%)</option>
+            <option value="1.16">Lv.8 (16%)</option>
+            <option value="1.18">Lv.9 (18%)</option>
+            <option value="1.20">Lv.10 (20%)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="speed-note">※各種バフを有効後に強化一覧から確認</div>
     </div>
-    <div class="speed-note">※各種バフを有効後に強化一覧から確認</div>
-  </div>
 
     <button class="calc-btn" onclick="calculate()">必要コストを計算</button>
 
@@ -398,6 +438,12 @@
         <span class="result-label"><i class="fas fa-clock icon-time"></i> 研究時間</span>
         <span class="result-value" id="res-time">0h 0m</span>
       </div>
+
+    <div class="result-row" style="margin-top: 15px;">
+      <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
+        <i class="fas fa-star"></i> SVSポイント
+      </span>
+      <span class="result-value" id="res-svs-points">0</span>
     </div>
 
   </div>
@@ -949,9 +995,10 @@ function getCost(category, params, targetLevel) {
       type: document.getElementById('academy-type'),
       container: document.getElementById('academy-list-container')
     },
-    // 共通入力（研究速度）
+    // 共通入力
     common: {
-      speed: document.getElementById('research-speed')
+      speed: document.getElementById('research-speed'),
+      valeria: document.getElementById('valeria-bonus')
     },
     result: {
       area: document.getElementById('result-area'),
@@ -962,7 +1009,8 @@ function getCost(category, params, targetLevel) {
       steel: document.getElementById('res-steel'),
       fc: document.getElementById('res-fc'),
       time: document.getElementById('res-time'),
-      rowFc: document.getElementById('row-fc')
+      rowFc: document.getElementById('row-fc'),
+      svsPoints: document.getElementById('res-svs-points')
     }
   };
 
@@ -1351,6 +1399,23 @@ function getCost(category, params, targetLevel) {
     if (s > 0 || timeStr === "") timeStr += `${s}s`;
 
     els.result.time.textContent = timeStr;
+
+    // --- ▼ SVSポイント計算修正 ---
+    // 火晶微粒子1個：1000ポイント
+    // 研究時間1分：30ポイント (秒は切り捨て)
+    const valeriaMult = parseFloat(els.common.valeria.value) || 1.0;
+
+    const fcPoints = total.fc * 1000;
+
+    // 秒を切り捨てて「分」に変換 (例: 1分59秒 -> 1分)
+    const timeMinutes = Math.floor(totalSec / 60);
+    const timePoints = timeMinutes * 30;
+
+    // 合計 × ヴァレリア倍率 (四捨五入)
+    const totalPoints = Math.round((fcPoints + timePoints) * valeriaMult);
+
+    els.result.svsPoints.textContent = totalPoints.toLocaleString();
+
     els.result.area.style.display = 'block';
     els.result.area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }

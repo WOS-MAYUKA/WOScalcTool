@@ -380,10 +380,12 @@
                 </button>
             </div>
 
-            <div class="speed-row">
-                <div class="agnes-wrapper">
-                    <span class="speed-label" style="font-size:0.9rem;">アグネス(工程管理)</span>
-                    <select id="milAgnes">
+            <div class="speed-row" style="flex-wrap: nowrap; gap: 5px;">
+                <span class="speed-label" style="white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">
+                    アグネス(工程管理)
+                </span>
+                <div class="speed-input-wrapper" style="flex: 1; justify-content: flex-end; min-width: 0;">
+                    <select id="milAgnes" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
                         <option value="0">未解放 (0h)</option>
                         <option value="2">Lv.1 (2h)</option>
                         <option value="3">Lv.2 (3h)</option>
@@ -393,6 +395,28 @@
                     </select>
                 </div>
             </div>
+
+            <div class="speed-row" style="flex-wrap: nowrap; gap: 5px;">
+                <span class="speed-label" style="white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">
+                    ヴァレリア(出撃準備)
+                </span>
+                <div class="speed-input-wrapper" style="flex: 1; justify-content: flex-end; min-width: 0;">
+                    <select id="milValeria" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+                        <option value="1.0">未解放 (0%)</option>
+                        <option value="1.02">Lv.1 (2%)</option>
+                        <option value="1.04">Lv.2 (4%)</option>
+                        <option value="1.06">Lv.3 (6%)</option>
+                        <option value="1.08">Lv.4 (8%)</option>
+                        <option value="1.10">Lv.5 (10%)</option>
+                        <option value="1.12">Lv.6 (12%)</option>
+                        <option value="1.14">Lv.7 (14%)</option>
+                        <option value="1.16">Lv.8 (16%)</option>
+                        <option value="1.18">Lv.9 (18%)</option>
+                        <option value="1.20">Lv.10 (20%)</option>
+                    </select>
+                </div>
+            </div>
+            
         </div>
 
         <button class="calc-btn" onclick="calculate()">必要コストを計算</button>
@@ -419,6 +443,13 @@
                 <span class="result-value" id="resTime">0秒</span>
             </div>
 
+            <div class="result-row" style="margin-top: 15px;">
+                <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
+                    <i class="fas fa-star"></i> SVSポイント
+                </span>
+                <span class="result-value" id="resMilPoints">0</span>
+            </div>
+            
             <div class="requirements-box" id="reqBox">
                 <h4><i class="fas fa-triangle-exclamation icon-warn"></i> 目標レベル到達に必要な条件</h4>
                 <div id="resReq">なし</div>
@@ -461,10 +492,12 @@
                 </button>
             </div>
 
-            <div class="speed-row">
-                <div class="agnes-wrapper">
-                    <span class="speed-label" style="font-size:0.9rem;">アグネス(工程管理)</span>
-                    <select id="fcAgnes">
+            <div class="speed-row" style="flex-wrap: nowrap; gap: 5px;">
+                <span class="speed-label" style="white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">
+                    アグネス(工程管理)
+                </span>
+                <div class="speed-input-wrapper" style="flex: 1; justify-content: flex-end; min-width: 0;">
+                    <select id="fcAgnes" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
                         <option value="0">未解放 (0h)</option>
                         <option value="2">Lv.1 (2h)</option>
                         <option value="3">Lv.2 (3h)</option>
@@ -474,6 +507,28 @@
                     </select>
                 </div>
             </div>
+
+            <div class="speed-row" style="flex-wrap: nowrap; gap: 5px;">
+                <span class="speed-label" style="white-space: nowrap; flex-shrink: 0; font-size: 0.8rem;">
+                    ヴァレリア(出撃準備)
+                </span>
+                <div class="speed-input-wrapper" style="flex: 1; justify-content: flex-end; min-width: 0;">
+                    <select id="fcValeria" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+                        <option value="1.0">未解放 (0%)</option>
+                        <option value="1.02">Lv.1 (2%)</option>
+                        <option value="1.04">Lv.2 (4%)</option>
+                        <option value="1.06">Lv.3 (6%)</option>
+                        <option value="1.08">Lv.4 (8%)</option>
+                        <option value="1.10">Lv.5 (10%)</option>
+                        <option value="1.12">Lv.6 (12%)</option>
+                        <option value="1.14">Lv.7 (14%)</option>
+                        <option value="1.16">Lv.8 (16%)</option>
+                        <option value="1.18">Lv.9 (18%)</option>
+                        <option value="1.20">Lv.10 (20%)</option>
+                    </select>
+                </div>
+            </div>
+            
         </div>
 
         <button class="calc-btn" onclick="calculateCrystal()">必要コストを計算</button>
@@ -509,6 +564,21 @@
                 <span class="result-value" id="resFcTime">0秒</span>
             </div>
 
+            <div class="result-row" style="margin-top: 15px;">
+                <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
+                    <i class="fas fa-star"></i> SVSポイント
+                </span>
+                <span class="result-value" id="resFcPoints">0</span>
+            </div>
+
+            <div class="requirements-box" id="reqFcBox">
+                <h4><i class="fas fa-triangle-exclamation icon-warn"></i> 目標レベル到達に必要な条件</h4>
+                <div id="resFcReq">なし</div>
+            </div>
+            </div> 
+            </div> 
+            </div> 
+            
             <div class="requirements-box" id="reqFcBox">
                 <h4><i class="fas fa-triangle-exclamation icon-warn"></i> 目標レベル到達に必要な条件</h4>
                 <div id="resFcReq">なし</div>
@@ -1363,17 +1433,15 @@
         '軍医所': dataHospitalCrystal
     };
 
-    // --- DOM ELEMENTS ---
-    // ★修正: 新しいID (milSpeedVal, milLordCmd, milAgnes など) を定義に追加
     const dom = {
         building: document.getElementById('buildingSelect'),
         currentLv: document.getElementById('currentLevel'),
         targetLv: document.getElementById('targetLevel'),
-        // --- 追加部分 START ---
         speedVal: document.getElementById('milSpeedVal'),
         lordCmd: document.getElementById('milLordCmd'),
         agnes: document.getElementById('milAgnes'),
-        // --- 追加部分 END ---
+        valeria: document.getElementById('milValeria'), // 軍備用ID
+
         resMeat: document.getElementById('resMeat'),
         resWood: document.getElementById('resWood'),
         resCoal: document.getElementById('resCoal'),
@@ -1381,6 +1449,8 @@
         resTime: document.getElementById('resTime'),
         resReq: document.getElementById('resReq'),
         reqBox: document.getElementById('reqBox'),
+        resPoints: document.getElementById('resMilPoints'), // 軍備用ID
+
         resultContainer: document.getElementById('resultContainer'),
         tabMilitary: document.getElementById('tab-military'),
         tabFireCrystal: document.getElementById('tab-fireCrystal')
@@ -1390,11 +1460,11 @@
         building: document.getElementById('fcBuildingSelect'),
         currentLv: document.getElementById('fcCurrentLevel'),
         targetLv: document.getElementById('fcTargetLevel'),
-        // --- 追加部分 START ---
         speedVal: document.getElementById('fcSpeedVal'),
         lordCmd: document.getElementById('fcLordCmd'),
         agnes: document.getElementById('fcAgnes'),
-        // --- 追加部分 END ---
+        valeria: document.getElementById('fcValeria'), // 火晶用ID
+
         resCrystal: document.getElementById('resFcCrystal'),
         resRefined: document.getElementById('resFcRefined'),
         rowRefined: document.getElementById('rowRfc'),
@@ -1405,6 +1475,8 @@
         resTime: document.getElementById('resFcTime'),
         resReq: document.getElementById('resFcReq'),
         reqBox: document.getElementById('reqFcBox'),
+        resPoints: document.getElementById('resFcPoints'), // 火晶用ID
+
         resultContainer: document.getElementById('fcResultContainer')
     };
 
@@ -1628,6 +1700,16 @@
             dom.resReq.innerHTML = requirements.join('<br>');
         }
 
+        // --- SVSポイント計算 (軍備施設) ---
+        // 時間1分 = 30ポイント (秒は切り捨て)
+        const valeriaMult = parseFloat(dom.valeria.value) || 1.0;
+
+        // 秒を切り捨てて「分」に変換
+        const timeMinutes = Math.floor(totalSeconds / 60);
+        const timePoints = timeMinutes * 30;
+
+        const totalPoints = Math.round(timePoints * valeriaMult);
+        dom.resPoints.textContent = totalPoints.toLocaleString();
         dom.resultContainer.style.display = 'block';
     }
 
@@ -1717,6 +1799,18 @@
             fcDom.resReq.innerHTML = requirements.join('<br>');
         }
 
+        // --- SVSポイント計算 (火晶施設) ---
+        const valeriaMultFc = parseFloat(fcDom.valeria.value) || 1.0;
+
+        const fcPoints = totalFc * 2000;
+        const rfcPoints = totalRfc * 30000;
+
+        // 秒を切り捨てて「分」に変換
+        const timeMinutesFc = Math.floor(totalSeconds / 60);
+        const timePointsFc = timeMinutesFc * 30;
+
+        const totalPointsFc = Math.round((fcPoints + rfcPoints + timePointsFc) * valeriaMultFc);
+        fcDom.resPoints.textContent = totalPointsFc.toLocaleString();
         fcDom.resultContainer.style.display = 'block';
     }
 
