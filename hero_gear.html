@@ -202,6 +202,35 @@
 
   .hidden { display: none; }
 
+  /* --- ヴァレリア入力欄用スタイル --- */
+  .setting-container {
+    margin-top: 20px;
+    padding: 10px 15px;
+    background: rgba(34, 211, 238, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+  }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+  .setting-label {
+    font-weight: bold;
+    color: var(--accent-ice);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .setting-input {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
   footer {
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
@@ -267,6 +296,29 @@
       </div>
     </div>
 
+    <div class="setting-container">
+      <div class="setting-row">
+        <span class="setting-label">
+          ヴァレリア(出撃準備)
+        </span>
+        <div class="setting-input">
+          <select id="valeriaBonus" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+            <option value="1.0">未解放 (0%)</option>
+            <option value="1.02">Lv.1 (2%)</option>
+            <option value="1.04">Lv.2 (4%)</option>
+            <option value="1.06">Lv.3 (6%)</option>
+            <option value="1.08">Lv.4 (8%)</option>
+            <option value="1.10">Lv.5 (10%)</option>
+            <option value="1.12">Lv.6 (12%)</option>
+            <option value="1.14">Lv.7 (14%)</option>
+            <option value="1.16">Lv.8 (16%)</option>
+            <option value="1.18">Lv.9 (18%)</option>
+            <option value="1.20">Lv.10 (20%)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
     <button class="calc-btn" onclick="calculateGearCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea" style="display:none;">
@@ -286,8 +338,15 @@
         <span class="result-label"><i class="fas fa-cube icon-stone"></i> 精錬エナジー源石</span>
         <span class="result-value" id="resStone">0</span>
       </div>
+
+      <div class="result-row" style="margin-top: 15px;">
+        <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
+          <i class="fas fa-star"></i> SVSポイント
+        </span>
+        <span class="result-value" id="resSvsPoints">0</span>
+      </div>    
     </div>
-  </div>
+  </div>  
 </div>
 
   <div class="youtube-wrapper">
@@ -383,8 +442,48 @@ function populateSelect(selectId, min, max, defaultVal = null) {
   }
 }
 
-  function updateUI() {
-    const curRarity = document.getElementById("curRarity").value;
+      function updateUI() {
+        const curRarity = document.getElementById("curRarity").value;
+        const curLvVal = parseInt(document.getElementById("curLv").value) || 0;
+        const curMasteryVal = parseInt(document.getElementById("curMastery").value) || 0;
+
+        // 現在がレジェンドの場合、目標レアリティの選択肢を動的に書き換える
+        if (curRarity === "legend") {
+          const tarRaritySelect = document.getElementById("tarRarity");
+          const prevValue = tarRaritySelect.value; // 切り替え前の選択状態を保持
+
+          // 一旦、選択肢を空にする
+          tarRaritySelect.innerHTML = "";
+          if (!(curLvVal === 100 && curMasteryVal === 20)) {
+            const optLegend = document.createElement("option");
+            optLegend.value = "legend";
+            optLegend.text = "レジェンド";
+            optLegend.style.color = "var(--color-legend)";
+            tarRaritySelect.appendChild(optLegend);
+          }
+
+          // 目標「神話」は常に追加
+          const optMythic = document.createElement("option");
+          optMythic.value = "mythic";
+          optMythic.text = "神話";
+          optMythic.style.color = "var(--color-mythic)";
+          tarRaritySelect.appendChild(optMythic);
+
+          // 値の再選択処理
+          if (curLvVal === 100 && curMasteryVal === 20) {
+            // カンスト時は強制的に神話
+            tarRaritySelect.value = "mythic";
+          } else {
+            if (prevValue === "mythic") {
+               tarRaritySelect.value = "mythic";
+            } else if (tarRaritySelect.querySelector(`option[value="${prevValue}"]`)) {
+               tarRaritySelect.value = prevValue;
+            } else {
+               tarRaritySelect.selectedIndex = 0;
+            }
+          }
+        }
+
     let tarRarity = curRarity;
 
     // --- 目標レアリティの表示制御 ---
@@ -606,11 +705,23 @@ function calculateGearCost() {
     }
   }
 
-  document.getElementById("resXP").innerText = totalXP.toLocaleString();
+document.getElementById("resXP").innerText = totalXP.toLocaleString();
   document.getElementById("resStone").innerText = totalStone.toLocaleString();
   document.getElementById("resWidget").innerText = totalWidget.toLocaleString();
   document.getElementById("resMythril").innerText = totalMythril.toLocaleString();
+  document.getElementById("resMythril").innerText = totalMythril.toLocaleString();
 
+  // --- SVSポイント計算 ---
+  // ミスリル1個：144000, 精錬石1個：4000
+  const valeriaMult = parseFloat(document.getElementById("valeriaBonus").value) || 1.0;
+
+  const mythrilPoints = totalMythril * 144000;
+  const stonePoints = totalStone * 4000;
+
+  // 合計 × ヴァレリア倍率 (四捨五入)
+  const totalPoints = Math.round((mythrilPoints + stonePoints) * valeriaMult);
+
+  document.getElementById("resSvsPoints").innerText = totalPoints.toLocaleString();
   document.getElementById("rowMythril").style.display = (totalMythril > 0 || tarRarity === "mythic") ? "flex" : "none";
   document.getElementById("rowWidget").style.display = (totalWidget > 0 || tarRarity === "legend" || tarRarity === "mythic") ? "flex" : "none";
   document.getElementById("rowStone").style.display = (totalStone > 0 || tarRarity === "legend" || tarRarity === "mythic") ? "flex" : "none";
