@@ -201,6 +201,36 @@
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
   }
+
+  /* --- ヴァレリア入力欄用スタイル --- */
+  .setting-container {
+    margin-top: 20px;
+    padding: 10px 15px;
+    background: rgba(34, 211, 238, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+  }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+  .setting-label {
+    font-weight: bold;
+    color: var(--accent-ice);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .setting-input {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
 </style>
 </head>
 <body>
@@ -277,6 +307,29 @@
       </div>
     </div>
 
+    <div class="setting-container">
+      <div class="setting-row">
+        <span class="setting-label">
+          ヴァレリア(出撃準備)
+        </span>
+        <div class="setting-input">
+          <select id="valeriaBonus" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+            <option value="1.0">未解放 (0%)</option>
+            <option value="1.02">Lv.1 (2%)</option>
+            <option value="1.04">Lv.2 (4%)</option>
+            <option value="1.06">Lv.3 (6%)</option>
+            <option value="1.08">Lv.4 (8%)</option>
+            <option value="1.10">Lv.5 (10%)</option>
+            <option value="1.12">Lv.6 (12%)</option>
+            <option value="1.14">Lv.7 (14%)</option>
+            <option value="1.16">Lv.8 (16%)</option>
+            <option value="1.18">Lv.9 (18%)</option>
+            <option value="1.20">Lv.10 (20%)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
     <button class="calc-btn" onclick="calculateHeroCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea" style="display:none;">
@@ -285,6 +338,13 @@
           <i id="resPieceIcon" class="fas fa-puzzle-piece piece-icon piece-ssr"></i> 英雄の欠片
         </span>
         <span class="result-value" id="resShards">0</span>
+      </div>
+
+      <div class="result-row" style="margin-top: 15px;">
+        <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
+          <i class="fas fa-star"></i> SVSポイント
+        </span>
+        <span class="result-value" id="resSvsPoints">0</span>
       </div>
       <div class="result-note">※英雄解放コストは含みません</div>
     </div>
@@ -459,7 +519,24 @@ function calculateHeroCost() {
     return;
   }
 
-  document.getElementById("resShards").innerText = totalShards.toLocaleString();
+  // --- SVSポイント計算 ---
+  // SSR: 3040, SR: 1220, R: 350
+  const heroRank = document.getElementById("heroRank").value;
+  const valeriaMult = parseFloat(document.getElementById("valeriaBonus").value) || 1.0;
+
+  let pointPerShard = 0;
+  if (heroRank === "ssr") pointPerShard = 3040;
+  else if (heroRank === "sr") pointPerShard = 1220;
+  else pointPerShard = 350;
+
+  const basePoints = totalShards * pointPerShard;
+
+  // 合計 × ヴァレリア倍率 (四捨五入)
+  const totalPoints = Math.round(basePoints * valeriaMult);
+
+  document.getElementById("resSvsPoints").innerText = totalPoints.toLocaleString();
+  
+document.getElementById("resShards").innerText = totalShards.toLocaleString();
   document.getElementById("resultArea").style.display = "block";
 }
 
