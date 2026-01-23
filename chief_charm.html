@@ -216,6 +216,35 @@
   .icon-book { color: #60a5fa; } /* 青 (ハンドブック) */
   .icon-tome { color: #f87171; } /* 赤 (秘典) */
 
+  /* --- ヴァレリア入力欄用スタイル --- */
+  .setting-container {
+    margin-top: 20px;
+    padding: 10px 15px;
+    background: rgba(34, 211, 238, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+  }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+  .setting-label {
+    font-weight: bold;
+    color: var(--accent-ice);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .setting-input {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  
   footer {
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
@@ -247,6 +276,29 @@
       </div>
     </div>
 
+    <div class="setting-container">
+      <div class="setting-row">
+        <span class="setting-label">
+          ヴァレリア(出撃準備)
+        </span>
+        <div class="setting-input">
+          <select id="valeriaBonus" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+            <option value="1.0">未解放 (0%)</option>
+            <option value="1.02">Lv.1 (2%)</option>
+            <option value="1.04">Lv.2 (4%)</option>
+            <option value="1.06">Lv.3 (6%)</option>
+            <option value="1.08">Lv.4 (8%)</option>
+            <option value="1.10">Lv.5 (10%)</option>
+            <option value="1.12">Lv.6 (12%)</option>
+            <option value="1.14">Lv.7 (14%)</option>
+            <option value="1.16">Lv.8 (16%)</option>
+            <option value="1.18">Lv.9 (18%)</option>
+            <option value="1.20">Lv.10 (20%)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
     <button class="calc-btn" onclick="calculateGemCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea">
@@ -272,151 +324,232 @@
   &copy; 2026 WOS Tools Created by MAYUKA
 </footer>
 
-<script>
-// ==========================================
-// データ定義 (Data Definition)
-// ==========================================
-const LEVEL_DATA = {
-    1:  { plan: 5,   book: 5,   tome: 0 },
-    2:  { plan: 15,  book: 40,  tome: 0 },
-    3:  { plan: 40,  book: 60,  tome: 0 },
-    4:  { plan: 100, book: 80,  tome: 0 },
-    5:  { plan: 200, book: 100, tome: 0 },
-    6:  { plan: 300, book: 120, tome: 0 },
-    7:  { plan: 400, book: 140, tome: 0 },
-    8:  { plan: 400, book: 200, tome: 0 },
-    9:  { plan: 400, book: 300, tome: 0 },
-    10: { plan: 420, book: 420, tome: 0 },
-    11: { plan: 420, book: 560, tome: 0 },
-    12: { plan: 450, book: 580, tome: 15 },
-    13: { plan: 450, book: 580, tome: 30 },
-    14: { plan: 500, book: 600, tome: 45 },
-    15: { plan: 500, book: 600, tome: 70 },
-    16: { plan: 550, book: 650, tome: 100 }
-};
+  <script>
+  // ==========================================
+  // データ定義 (Data Definition)
+  // ==========================================
+  const LEVEL_DATA_LIST = [
+      // --- Lv.0 -> Lv.1 ---
+      { id: "0-0",  name: "未解放",        plan: 0,   book: 0,   tome: 0,   score: 0 },
+      { id: "1-0",  name: "1",          plan: 5,   book: 5,   tome: 0,   score: 625 },
 
-const MULTIPLIERS = [1, 3, 6, 12, 18];
+      // --- Lv.1 -> Lv.2 (1段階) ---
+      { id: "2-0",  name: "2",          plan: 15,  book: 40,  tome: 0,   score: 1250 },
+
+      // --- Lv.2 -> Lv.3 (1段階) ---
+      { id: "3-0",  name: "3",          plan: 40,  book: 60,  tome: 0,   score: 3125 },
+
+      // --- Lv.3 -> Lv.4 (1段階) ---
+      { id: "4-0",  name: "4",          plan: 100, book: 80,  tome: 0,   score: 8750 },
+
+      // --- Lv.4 -> Lv.5 (4段階: Total Plan 200, Book 100 -> 各50, 25) ---
+      { id: "4-1",  name: "4-1",    plan: 50,  book: 25,  tome: 0,   score: 2813 },
+      { id: "4-2",  name: "4-2",    plan: 50,  book: 25,  tome: 0,   score: 2812 },
+      { id: "4-3",  name: "4-3",    plan: 50,  book: 25,  tome: 0,   score: 2813 },
+      { id: "5-0",  name: "5",          plan: 50,  book: 25,  tome: 0,   score: 2812 },
+
+      // --- Lv.5 -> Lv.6 (4段階: Total Plan 300, Book 120 -> 各75, 30) ---
+      { id: "5-1",  name: "5-1",    plan: 75,  book: 30,  tome: 0,   score: 3125 },
+      { id: "5-2",  name: "5-2",    plan: 75,  book: 30,  tome: 0,   score: 3125 },
+      { id: "5-3",  name: "5-3",    plan: 75,  book: 30,  tome: 0,   score: 3125 },
+      { id: "6-0",  name: "6",          plan: 75,  book: 30,  tome: 0,   score: 3125 },
+
+      // --- Lv.6 -> Lv.7 (4段階: Total Plan 400, Book 140 -> 各100, 35) ---
+      { id: "6-1",  name: "6-1",    plan: 100, book: 35,  tome: 0,   score: 3125 },
+      { id: "6-2",  name: "6-2",    plan: 100, book: 35,  tome: 0,   score: 3125 },
+      { id: "6-3",  name: "6-3",    plan: 100, book: 35,  tome: 0,   score: 3125 },
+      { id: "7-0",  name: "7",          plan: 100, book: 35,  tome: 0,   score: 3125 },
+
+      // --- Lv.7 -> Lv.8 (4段階: Total Plan 400, Book 200 -> 各100, 50) ---
+      { id: "7-1",  name: "7-1",    plan: 100, book: 50,  tome: 0,   score: 3250 },
+      { id: "7-2",  name: "7-2",    plan: 100, book: 50,  tome: 0,   score: 3250 },
+      { id: "7-3",  name: "7-3",    plan: 100, book: 50,  tome: 0,   score: 3250 },
+      { id: "8-0",  name: "8",          plan: 100, book: 50,  tome: 0,   score: 3250 },
+
+      // --- Lv.8 -> Lv.9 (4段階: Total Plan 400, Book 300 -> 各100, 75) ---
+      { id: "8-1",  name: "8-1",    plan: 100, book: 75,  tome: 0,   score: 3500 },
+      { id: "8-2",  name: "8-2",    plan: 100, book: 75,  tome: 0,   score: 3500 },
+      { id: "8-3",  name: "8-3",    plan: 100, book: 75,  tome: 0,   score: 3500 },
+      { id: "9-0",  name: "9",          plan: 100, book: 75,  tome: 0,   score: 3500 },
+
+      // --- Lv.9 -> Lv.10 (4段階: Total Plan 420, Book 420 -> 各105, 105) ---
+      { id: "9-1",  name: "9-1",    plan: 105, book: 105, tome: 0,   score: 3750 },
+      { id: "9-2",  name: "9-2",    plan: 105, book: 105, tome: 0,   score: 3750 },
+      { id: "9-3",  name: "9-3",    plan: 105, book: 105, tome: 0,   score: 3750 },
+      { id: "10-0", name: "10",         plan: 105, book: 105, tome: 0,   score: 3750 },
+
+      // --- Lv.10 -> Lv.11 (4段階: Total Plan 420, Book 560 -> 各105, 140) ---
+      { id: "10-1", name: "10-1",   plan: 105, book: 140, tome: 0,   score: 4000 },
+      { id: "10-2", name: "10-2",   plan: 105, book: 140, tome: 0,   score: 4000 },
+      { id: "10-3", name: "10-3",   plan: 105, book: 140, tome: 0,   score: 4000 },
+      { id: "11-0", name: "11",         plan: 105, book: 140, tome: 0,   score: 4000 },
+
+      // --- Lv.11 -> Lv.12 (5段階: Total Plan 450, Book 580, Tome 15 -> 各90, 116, 3) ---
+      { id: "11-1", name: "11-1",   plan: 90,  book: 116, tome: 3,   score: 3400 },
+      { id: "11-2", name: "11-2",   plan: 90,  book: 116, tome: 3,   score: 3400 },
+      { id: "11-3", name: "11-3",   plan: 90,  book: 116, tome: 3,   score: 3400 },
+      { id: "11-4", name: "11-4",   plan: 90,  book: 116, tome: 3,   score: 3400 },
+      { id: "12-0", name: "12",         plan: 90,  book: 116, tome: 3,   score: 3400 },
+
+      // --- Lv.12 -> Lv.13 (5段階: Total Plan 450, Book 580, Tome 30 -> 各90, 116, 6) ---
+      { id: "12-1", name: "12-1",   plan: 90,  book: 116, tome: 6,   score: 3600 },
+      { id: "12-2", name: "12-2",   plan: 90,  book: 116, tome: 6,   score: 3600 },
+      { id: "12-3", name: "12-3",   plan: 90,  book: 116, tome: 6,   score: 3600 },
+      { id: "12-4", name: "12-4",   plan: 90,  book: 116, tome: 6,   score: 3600 },
+      { id: "13-0", name: "13",         plan: 90,  book: 116, tome: 6,   score: 3600 },
+
+      // --- Lv.13 -> Lv.14 (5段階: Total Plan 500, Book 600, Tome 45 -> 各100, 120, 9) ---
+      { id: "13-1", name: "13-1",   plan: 100, book: 120, tome: 9,   score: 3800 },
+      { id: "13-2", name: "13-2",   plan: 100, book: 120, tome: 9,   score: 3800 },
+      { id: "13-3", name: "13-3",   plan: 100, book: 120, tome: 9,   score: 3800 },
+      { id: "13-4", name: "13-4",   plan: 100, book: 120, tome: 9,   score: 3800 },
+      { id: "14-0", name: "14",         plan: 100, book: 120, tome: 9,   score: 3800 },
+
+      // --- Lv.14 -> Lv.15 (5段階: Total Plan 500, Book 600, Tome 70 -> 各100, 120, 14) ---
+      { id: "14-1", name: "14-1",   plan: 100, book: 120, tome: 14,  score: 4000 },
+      { id: "14-2", name: "14-2",   plan: 100, book: 120, tome: 14,  score: 4000 },
+      { id: "14-3", name: "14-3",   plan: 100, book: 120, tome: 14,  score: 4000 },
+      { id: "14-4", name: "14-4",   plan: 100, book: 120, tome: 14,  score: 4000 },
+      { id: "15-0", name: "15",         plan: 100, book: 120, tome: 14,  score: 4000 },
+
+      // --- Lv.15 -> Lv.16 (5段階: Total Plan 550, Book 650, Tome 100 -> 各110, 130, 20) ---
+      { id: "15-1", name: "15-1",   plan: 110, book: 130, tome: 20,  score: 4200 },
+      { id: "15-2", name: "15-2",   plan: 110, book: 130, tome: 20,  score: 4200 },
+      { id: "15-3", name: "15-3",   plan: 110, book: 130, tome: 20,  score: 4200 },
+      { id: "15-4", name: "15-4",   plan: 110, book: 130, tome: 20,  score: 4200 },
+      { id: "16-0", name: "16",         plan: 110, book: 130, tome: 20,  score: 4200 }
+  ];
+
+  const MULTIPLIERS = [1, 3, 6, 12, 18];
 
   // ==========================================
   // 初期化 & ロジック
   // ==========================================
-  const MAX_LEVEL = 16; // 最大レベル
 
   // 目標レベルのプルダウンを再生成する関数
   function updateTargetOptions() {
-      const currentVal = parseInt(document.getElementById('currentLevel').value);
+      const currentIdx = document.getElementById('currentLevel').selectedIndex;
       const targetSelect = document.getElementById('targetLevel');
 
       // 一旦クリア
       targetSelect.innerHTML = '';
 
-      // 現在レベル+1 から 最大レベル まで生成
-      for (let i = currentVal + 1; i <= MAX_LEVEL; i++) {
+      // 現在レベルの次から最後まで
+      for (let i = currentIdx + 1; i < LEVEL_DATA_LIST.length; i++) {
           let option = document.createElement('option');
           option.value = i;
-          option.text = i;
+          option.text = LEVEL_DATA_LIST[i].name;
           targetSelect.appendChild(option);
       }
 
-      // ★重要: 常にリストの先頭（現在レベル+1）を選択状態にする
+      // 先頭を選択
       if (targetSelect.options.length > 0) {
           targetSelect.selectedIndex = 0;
       }
   }
 
-  // 初期化処理
-  window.addEventListener('DOMContentLoaded', () => {
-      const currSelect = document.getElementById('currentLevel');
+    // 初期化処理
+    window.addEventListener('DOMContentLoaded', () => {
+        const currSelect = document.getElementById('currentLevel');
 
-      // 現在レベル: 0 - 15 (MAX_LEVEL - 1)
-      for (let i = 0; i < MAX_LEVEL; i++) {
-          let option = document.createElement('option');
-          option.value = i;
+        for (let i = 0; i < LEVEL_DATA_LIST.length - 1; i++) {
+            const data = LEVEL_DATA_LIST[i];
+            let option = document.createElement('option');
+            option.value = i;
+            option.text = data.name;
+            currSelect.appendChild(option);
+        }
 
-          // 0の場合は"未解放"、それ以外は数値を表示
-          option.text = (i === 0) ? "未解放" : i;
+        currSelect.addEventListener('change', updateTargetOptions);
+        updateTargetOptions();
+    });
 
-          currSelect.appendChild(option);
-      }
+    function calculateGemCost() {
+        const currentIdx = parseInt(document.getElementById('currentLevel').value);
+        const targetIdx = parseInt(document.getElementById('targetLevel').value);
+        const resultArea = document.getElementById('resultArea');
 
-      // イベントリスナー: 現在レベルが変わったら目標リストを更新
-      currSelect.addEventListener('change', updateTargetOptions);
+        // リセット
+        resultArea.innerHTML = '';
+        resultArea.style.display = 'none';
 
-      // 初回実行（目標リストを生成）
-      updateTargetOptions();
-  });
+        // バリデーション
+        if (currentIdx >= targetIdx) {
+            alert("目標レベルは現在レベルより大きくしてください");
+            return;
+        }
 
-  function calculateGemCost() {
-      const currentLv = parseInt(document.getElementById('currentLevel').value);
-      const targetLv = parseInt(document.getElementById('targetLevel').value);
-      const resultArea = document.getElementById('resultArea');
+        // ヴァレリア倍率の取得
+        const valeriaMult = parseFloat(document.getElementById("valeriaBonus").value) || 1.0;
 
-      // リセット
-      resultArea.innerHTML = '';
-      resultArea.style.display = 'none';
+        // 基本コスト（1個分）の計算
+        let baseCost = { plan: 0, book: 0, tome: 0, score: 0 };
 
-      // バリデーション
-      if (currentLv >= targetLv) {
-          alert("目標レベルは現在レベルより大きくしてください");
-          return;
-      }
+        for (let i = currentIdx + 1; i <= targetIdx; i++) {
+            const data = LEVEL_DATA_LIST[i];
+            baseCost.plan += data.plan;
+            baseCost.book += data.book;
+            baseCost.tome += data.tome;
+            baseCost.score += data.score;
+        }
 
-      // 基本コスト（1個分）の計算
-      let baseCost = { plan: 0, book: 0, tome: 0 };
+        // 秘典の表示判定
+        const showTome = baseCost.tome > 0;
 
-      for (let i = currentLv + 1; i <= targetLv; i++) {
-          if (LEVEL_DATA[i]) {
-              baseCost.plan += LEVEL_DATA[i].plan;
-              baseCost.book += LEVEL_DATA[i].book;
-              baseCost.tome += LEVEL_DATA[i].tome;
-          }
-      }
+        MULTIPLIERS.forEach(count => {
+            const totalPlan = (baseCost.plan * count).toLocaleString();
+            const totalBook = (baseCost.book * count).toLocaleString();
+            const totalTome = (baseCost.tome * count).toLocaleString();
 
-      // 秘典の表示判定
-      const showTome = targetLv >= 12;
+            // --- SVSポイント計算 ---
+            // 評価スコア合計 × 70 × 個数 × ヴァレリア倍率 (四捨五入)
+            const rawSvs = baseCost.score * 70 * count;
+            const totalSvs = Math.round(rawSvs * valeriaMult).toLocaleString();
 
-      MULTIPLIERS.forEach(count => {
-          const totalPlan = (baseCost.plan * count).toLocaleString();
-          const totalBook = (baseCost.book * count).toLocaleString();
-          const totalTome = (baseCost.tome * count).toLocaleString();
+            const tomeHtml = showTome ? `
+                <div class="result-row">
+                    <span class="result-label">
+                        <i class="fas fa-book-open icon-tome"></i> 宝石秘典
+                    </span>
+                    <span class="result-value">${totalTome}</span>
+                </div>` : '';
 
-          const tomeHtml = showTome ? `
-              <div class="result-row">
-                  <span class="result-label">
-                      <i class="fas fa-book-open icon-tome"></i> 宝石秘典
-                  </span>
-                  <span class="result-value">${totalTome}</span>
-              </div>` : '';
+            const groupHtml = `
+                <div class="result-group">
+                    <div class="group-header">宝石 ${count}個分</div>
 
-          const groupHtml = `
-              <div class="result-group">
-                  <div class="group-header">宝石 ${count}個分</div>
+                    <div class="result-row">
+                        <span class="result-label">
+                            <i class="fas fa-scroll icon-plan"></i> 宝石図面
+                        </span>
+                        <span class="result-value">${totalPlan}</span>
+                    </div>
 
-                  <div class="result-row">
-                      <span class="result-label">
-                          <i class="fas fa-scroll icon-plan"></i> 宝石図面
-                      </span>
-                      <span class="result-value">${totalPlan}</span>
-                  </div>
+                    <div class="result-row">
+                        <span class="result-label">
+                            <i class="fas fa-book icon-book"></i> 宝石ハンドブック
+                        </span>
+                        <span class="result-value">${totalBook}</span>
+                    </div>
 
-                  <div class="result-row">
-                      <span class="result-label">
-                          <i class="fas fa-book icon-book"></i> 宝石ハンドブック
-                      </span>
-                      <span class="result-value">${totalBook}</span>
-                  </div>
+                    ${tomeHtml}
 
-                  ${tomeHtml}
-              </div>
-          `;
+                    <div class="result-row" style="margin-top:15px;">
+                        <span class="result-label" style="color:#fbbf24;">
+                            <i class="fas fa-star icon-star"></i> SVSポイント
+                        </span>
+                        <span class="result-value">${totalSvs}</span>
+                    </div>
+                </div>
+            `;
 
-          resultArea.insertAdjacentHTML('beforeend', groupHtml);
-      });
+            resultArea.insertAdjacentHTML('beforeend', groupHtml);
+        });
 
-      resultArea.style.display = 'block';
-  }
+        resultArea.style.display = 'block';
+    }
 
-</script>
+  </script>
 
 </body>
 </html>
