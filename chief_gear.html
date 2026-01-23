@@ -204,6 +204,35 @@
 
   .hidden { display: none; }
 
+      /* --- ヴァレリア入力欄用スタイル --- */
+      .setting-container {
+        margin-top: 20px;
+        padding: 10px 15px;
+        background: rgba(34, 211, 238, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+      }
+      .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 5px;
+      }
+      .setting-label {
+        font-weight: bold;
+        color: var(--accent-ice);
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .setting-input {
+        flex: 1;
+        display: flex;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+    
   footer {
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
@@ -246,6 +275,29 @@
       </div>
     </div>
 
+      <div class="setting-container">
+        <div class="setting-row">
+          <span class="setting-label">
+            ヴァレリア(出撃準備)
+          </span>
+          <div class="setting-input">
+            <select id="valeriaBonus" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+              <option value="1.0">未解放 (0%)</option>
+              <option value="1.02">Lv.1 (2%)</option>
+              <option value="1.04">Lv.2 (4%)</option>
+              <option value="1.06">Lv.3 (6%)</option>
+              <option value="1.08">Lv.4 (8%)</option>
+              <option value="1.10">Lv.5 (10%)</option>
+              <option value="1.12">Lv.6 (12%)</option>
+              <option value="1.14">Lv.7 (14%)</option>
+              <option value="1.16">Lv.8 (16%)</option>
+              <option value="1.18">Lv.9 (18%)</option>
+              <option value="1.20">Lv.10 (20%)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
     <button class="calc-btn" onclick="calculateEquipCost()">必要コストを計算</button>
 
     <div class="result-container" id="resultArea">
@@ -276,226 +328,229 @@
 // データ定義 (Data Definition)
 // ==========================================
 
-const EQUIP_DATA = [
-    // --- 未解放 (Unreleased) ---
-    // 計算ロジック上、開始点として必要
-    { name: "未解放", alloy: 0, polish: 0, bp: 0, amber: 0 },
+    const EQUIP_DATA = [
+        // --- 未解放 (Unreleased) ---
+        { name: "未解放", alloy: 0, polish: 0, bp: 0, amber: 0, score: 0 },
 
-    // --- グッド (Good) ---
-    { name: "グッド", alloy: 1500, polish: 15, bp: 0, amber: 0 },
-    { name: "グッド★1", alloy: 3800, polish: 40, bp: 0, amber: 0 },
+        // --- グッド (Good) ---
+        { name: "グッド", alloy: 1500, polish: 15, bp: 0, amber: 0, score: 1125 },
+        { name: "グッド★1", alloy: 3800, polish: 40, bp: 0, amber: 0, score: 1875 },
 
-    // --- レア (Rare) ---
-    { name: "レア", alloy: 7000, polish: 70, bp: 0, amber: 0 },
-    { name: "レア★1", alloy: 9700, polish: 95, bp: 0, amber: 0 },
-    { name: "レア★2", alloy: 0, polish: 0, bp: 45, amber: 0 },
-    { name: "レア★3", alloy: 0, polish: 0, bp: 50, amber: 0 },
+        // --- レア (Rare) ---
+        { name: "レア", alloy: 7000, polish: 70, bp: 0, amber: 0, score: 3000 },
+        { name: "レア★1", alloy: 9700, polish: 95, bp: 0, amber: 0, score: 4500 },
+        { name: "レア★2", alloy: 0, polish: 0, bp: 45, amber: 0, score: 5100 },
+        { name: "レア★3", alloy: 0, polish: 0, bp: 50, amber: 0, score: 5440 },
 
-    // --- エピック (Epic) ---
-    { name: "エピック", alloy: 0, polish: 0, bp: 60, amber: 0 },
-    { name: "エピック★1", alloy: 0, polish: 0, bp: 70, amber: 0 },
-    { name: "エピック★2", alloy: 6500, polish: 65, bp: 40, amber: 0 },
-    { name: "エピック★3", alloy: 8000, polish: 80, bp: 50, amber: 0 },
+        // --- エピック (Epic) ---
+        { name: "エピック", alloy: 0, polish: 0, bp: 60, amber: 0, score: 3230 },
+        { name: "エピック★1", alloy: 0, polish: 0, bp: 70, amber: 0, score: 3230 },
+        { name: "エピック★2", alloy: 6500, polish: 65, bp: 40, amber: 0, score: 3225 },
+        { name: "エピック★3", alloy: 8000, polish: 80, bp: 50, amber: 0, score: 3225 },
 
-    // --- エピック T1 ---
-    { name: "エピックT1", alloy: 10000, polish: 95, bp: 60, amber: 0 },
-    { name: "エピックT1★1", alloy: 11000, polish: 110, bp: 70, amber: 0 },
-    { name: "エピックT1★2", alloy: 13000, polish: 130, bp: 85, amber: 0 },
-    { name: "エピックT1★3", alloy: 15000, polish: 160, bp: 100, amber: 0 },
+        // --- エピック T1 ---
+        { name: "エピックT1", alloy: 10000, polish: 95, bp: 60, amber: 0, score: 3440 },
+        { name: "エピックT1★1", alloy: 11000, polish: 110, bp: 70, amber: 0, score: 3440 },
+        { name: "エピックT1★2", alloy: 13000, polish: 130, bp: 85, amber: 0, score: 4085 },
+        { name: "エピックT1★3", alloy: 15000, polish: 160, bp: 100, amber: 0, score: 4085 },
 
-    // --- レジェンド (Legend) ---
-    { name: "レジェンド", alloy: 22000, polish: 220, bp: 40, amber: 0 },
-    { name: "レジェンド★1", alloy: 23000, polish: 230, bp: 40, amber: 0 },
-    { name: "レジェンド★2", alloy: 25000, polish: 250, bp: 45, amber: 0 },
-    { name: "レジェンド★3", alloy: 26000, polish: 260, bp: 45, amber: 0 },
+        // --- レジェンド (Legend) ---
+        { name: "レジェンド", alloy: 22000, polish: 220, bp: 40, amber: 0, score: 6250 },
+        { name: "レジェンド★1", alloy: 23000, polish: 230, bp: 40, amber: 0, score: 6250 },
+        { name: "レジェンド★2", alloy: 25000, polish: 250, bp: 45, amber: 0, score: 6250 },
+        { name: "レジェンド★3", alloy: 26000, polish: 260, bp: 45, amber: 0, score: 6250 },
 
-    // --- レジェンド T1 ---
-    { name: "レジェンドT1", alloy: 28000, polish: 280, bp: 45, amber: 0 },
-    { name: "レジェンドT1★1", alloy: 30000, polish: 300, bp: 55, amber: 0 },
-    { name: "レジェンドT1★2", alloy: 32000, polish: 320, bp: 55, amber: 0 },
-    { name: "レジェンドT1★3", alloy: 35000, polish: 340, bp: 55, amber: 0 },
+        // --- レジェンド T1 ---
+        { name: "レジェンドT1", alloy: 28000, polish: 280, bp: 45, amber: 0, score: 6250 },
+        { name: "レジェンドT1★1", alloy: 30000, polish: 300, bp: 55, amber: 0, score: 6250 },
+        { name: "レジェンドT1★2", alloy: 32000, polish: 320, bp: 55, amber: 0, score: 6250 },
+        { name: "レジェンドT1★3", alloy: 35000, polish: 340, bp: 55, amber: 0, score: 6250 },
 
-    // --- レジェンド T2 ---
-    { name: "レジェンドT2", alloy: 38000, polish: 390, bp: 55, amber: 0 },
-    { name: "レジェンドT2★1", alloy: 43000, polish: 430, bp: 75, amber: 0 },
-    { name: "レジェンドT2★2", alloy: 45000, polish: 460, bp: 80, amber: 0 },
+        // --- レジェンド T2 ---
+        { name: "レジェンドT2", alloy: 38000, polish: 390, bp: 55, amber: 0, score: 6250 },
+        { name: "レジェンドT2★1", alloy: 43000, polish: 430, bp: 75, amber: 0, score: 6250 },
+        { name: "レジェンドT2★2", alloy: 45000, polish: 460, bp: 80, amber: 0, score: 6250 },
 
-    // =========================================================
-    // ここから 4段階分割エリア
-    // =========================================================
+        // =========================================================
+        // ここから 4段階分割エリア (画像の詳細リスト部分)
+        // =========================================================
 
-    // レジェンドT2★3 -> 次は 神話
-    { name: "レジェンドT2★3", alloy: 48000, polish: 500, bp: 85, amber: 0, hasStages: true, maxStage: 3 },
-    { name: "レジェンドT2★3-1", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true },
-    { name: "レジェンドT2★3-2", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true },
-    { name: "レジェンドT2★3-3", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true },
+        // レジェンドT2★3 -> 次は 神話
+        { name: "レジェンドT2★3", alloy: 48000, polish: 500, bp: 85, amber: 0, hasStages: true, maxStage: 3, score: 2320 }, 
+        { name: "レジェンドT2★3-1", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true, score: 2320 },
+        { name: "レジェンドT2★3-2", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true, score: 2320 },
+        { name: "レジェンドT2★3-3", alloy: 12500, polish: 132, bp: 21, amber: 2, isStage: true, score: 2320 },
 
-    // 神話 -> 次は 神話★1
-    { name: "神話", alloy: 12500, polish: 134, bp: 22, amber: 4, hasStages: true, maxStage: 3 },
-    { name: "神話-1", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true },
-    { name: "神話-2", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true },
-    { name: "神話-3", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true },
+        // 神話 -> 次は 神話★1
+        { name: "神話", alloy: 12500, polish: 134, bp: 22, amber: 4, hasStages: true, maxStage: 3, score: 2600 },
+        { name: "神話-1", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true, score: 2320 },
+        { name: "神話-2", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true, score: 2320 },
+        { name: "神話-3", alloy: 13000, polish: 140, bp: 22, amber: 2, isStage: true, score: 2320 },
 
-    // 神話★1 -> 次は 神話★2
-    { name: "神話★1", alloy: 13000, polish: 140, bp: 24, amber: 4, hasStages: true, maxStage: 3 },
-    { name: "神話★1-1", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true },
-    { name: "神話★1-2", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true },
-    { name: "神話★1-3", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true },
+        // 神話★1 -> 次は 神話★2
+        { name: "神話★1", alloy: 13000, polish: 140, bp: 24, amber: 4, hasStages: true, maxStage: 3, score: 2600 },
+        { name: "神話★1-1", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true, score: 2310 },
+        { name: "神話★1-2", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true, score: 2310 },
+        { name: "神話★1-3", alloy: 13500, polish: 147, bp: 23, amber: 2, isStage: true, score: 2310 },
 
-    // 神話★2 -> 次は 神話★3
-    { name: "神話★2", alloy: 13500, polish: 149, bp: 26, amber: 4, hasStages: true, maxStage: 3 },
-    { name: "神話★2-1", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true },
-    { name: "神話★2-2", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true },
-    { name: "神話★2-3", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true },
+        // 神話★2 -> 次は 神話★3
+        { name: "神話★2", alloy: 13500, polish: 149, bp: 26, amber: 4, hasStages: true, maxStage: 3, score: 2630 },
+        { name: "神話★2-1", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true, score: 2330 },
+        { name: "神話★2-2", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true, score: 2330 },
+        { name: "神話★2-3", alloy: 14000, polish: 155, bp: 25, amber: 2, isStage: true, score: 2330 },
 
-    // 神話★3 -> 次は 神話T1
-    { name: "神話★3", alloy: 14000, polish: 155, bp: 25, amber: 4, hasStages: true, maxStage: 3 },
-    { name: "神話★3-1", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true },
-    { name: "神話★3-2", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true },
-    { name: "神話★3-3", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true },
+        // 神話★3 -> 次は 神話T1
+        { name: "神話★3", alloy: 14000, polish: 155, bp: 25, amber: 4, hasStages: true, maxStage: 3, score: 2570 },
+        { name: "神話★3-1", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true, score: 2300 },
+        { name: "神話★3-2", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true, score: 2300 },
+        { name: "神話★3-3", alloy: 14750, polish: 167, bp: 27, amber: 3, isStage: true, score: 2300 },
 
-    // 神話T1 -> 次は 神話T1★1
-    { name: "神話T1", alloy: 14750, polish: 169, bp: 29, amber: 6, hasStages: true, maxStage: 3 },
-    { name: "神話T1-1", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true },
-    { name: "神話T1-2", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true },
-    { name: "神話T1-3", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true },
+        // 神話T1 -> 次は 神話T1★1
+        { name: "神話T1", alloy: 14750, polish: 169, bp: 29, amber: 6, hasStages: true, maxStage: 3, score: 2660 },
+        { name: "神話T1-1", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true, score: 2300 },
+        { name: "神話T1-2", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true, score: 2300 },
+        { name: "神話T1-3", alloy: 15250, polish: 175, bp: 28, amber: 3, isStage: true, score: 2300 },
 
-    // 神話T1★1 -> 次は 神話T1★2
-    { name: "神話T1★1", alloy: 15250, polish: 175, bp: 31, amber: 6, hasStages: true, maxStage: 3 },
-    { name: "神話T1★1-1", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true },
-    { name: "神話T1★1-2", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true },
-    { name: "神話T1★1-3", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true },
+        // 神話T1★1 -> 次は 神話T1★2
+        { name: "神話T1★1", alloy: 15250, polish: 175, bp: 31, amber: 6, hasStages: true, maxStage: 3, score: 2660 },
+        { name: "神話T1★1-1", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true, score: 2320 },
+        { name: "神話T1★1-2", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true, score: 2320 },
+        { name: "神話T1★1-3", alloy: 15750, polish: 182, bp: 30, amber: 3, isStage: true, score: 2320 },
 
-    // 神話T1★2 -> 次は 神話T1★3
-    { name: "神話T1★2", alloy: 15750, polish: 184, bp: 30, amber: 6, hasStages: true, maxStage: 3 },
-    { name: "神話T1★2-1", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true },
-    { name: "神話T1★2-2", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true },
-    { name: "神話T1★2-3", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true },
+        // 神話T1★2 -> 次は 神話T1★3
+        { name: "神話T1★2", alloy: 15750, polish: 184, bp: 30, amber: 6, hasStages: true, maxStage: 3, score: 2600 },
+        { name: "神話T1★2-1", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true, score: 2320 },
+        { name: "神話T1★2-2", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true, score: 2320 },
+        { name: "神話T1★2-3", alloy: 16250, polish: 190, bp: 31, amber: 3, isStage: true, score: 2320 },
 
-    // 神話T1★3 -> 次は 神話T2
-    { name: "神話T1★3", alloy: 16250, polish: 190, bp: 32, amber: 6, hasStages: true, maxStage: 3 },
-    { name: "神話T1★3-1", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true },
-    { name: "神話T1★3-2", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true },
-    { name: "神話T1★3-3", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true },
+        // 神話T1★3 -> 次は 神話T2
+        { name: "神話T1★3", alloy: 16250, polish: 190, bp: 32, amber: 6, hasStages: true, maxStage: 3, score: 2600 },
+        { name: "神話T1★3-1", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true, score: 2370 },
+        { name: "神話T1★3-2", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true, score: 2370 },
+        { name: "神話T1★3-3", alloy: 17000, polish: 202, bp: 33, amber: 5, isStage: true, score: 2370 },
 
-    // 神話T2 -> 次は 神話T2★1
-    { name: "神話T2", alloy: 17000, polish: 204, bp: 36, amber: 5, hasStages: true, maxStage: 3 },
-    { name: "神話T2-1", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true },
-    { name: "神話T2-2", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true },
-    { name: "神話T2-3", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true },
+        // 神話T2 -> 次は 神話T2★1
+        { name: "神話T2", alloy: 17000, polish: 204, bp: 36, amber: 5, hasStages: true, maxStage: 3, score: 2450 },
+        { name: "神話T2-1", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true, score: 2390 },
+        { name: "神話T2-2", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true, score: 2390 },
+        { name: "神話T2-3", alloy: 17500, polish: 210, bp: 35, amber: 5, isStage: true, score: 2390 },
 
-    // 神話T2★1 -> 次は 神話T2★2
-    { name: "神話T2★1", alloy: 17500, polish: 210, bp: 35, amber: 5, hasStages: true, maxStage: 3 },
-    { name: "神話T2★1-1", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true },
-    { name: "神話T2★1-2", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true },
-    { name: "神話T2★1-3", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true },
+        // 神話T2★1 -> 次は 神話T2★2
+        { name: "神話T2★1", alloy: 17500, polish: 210, bp: 35, amber: 5, hasStages: true, maxStage: 3, score: 2390 },
+        { name: "神話T2★1-1", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true, score: 2380 },
+        { name: "神話T2★1-2", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true, score: 2380 },
+        { name: "神話T2★1-3", alloy: 18000, polish: 217, bp: 36, amber: 5, isStage: true, score: 2380 },
 
-    // 神話T2★2 -> 次は 神話T2★3
-    { name: "神話T2★2", alloy: 18000, polish: 219, bp: 37, amber: 5, hasStages: true, maxStage: 3 },
-    { name: "神話T2★2-1", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true },
-    { name: "神話T2★2-2", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true },
-    { name: "神話T2★2-3", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true },
+        // 神話T2★2 -> 次は 神話T2★3
+        { name: "神話T2★2", alloy: 18000, polish: 219, bp: 37, amber: 5, hasStages: true, maxStage: 3, score: 2420 },
+        { name: "神話T2★2-1", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true, score: 2380 },
+        { name: "神話T2★2-2", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true, score: 2380 },
+        { name: "神話T2★2-3", alloy: 18500, polish: 225, bp: 37, amber: 5, isStage: true, score: 2380 },
 
-    // 神話T2★3 -> 次は 神話T3
-    { name: "神話T2★3", alloy: 18500, polish: 225, bp: 39, amber: 5, hasStages: true, maxStage: 3 },
-    { name: "神話T2★3-1", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true },
-    { name: "神話T2★3-2", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true },
-    { name: "神話T2★3-3", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true },
+        // 神話T2★3 -> 次は 神話T3
+        { name: "神話T2★3", alloy: 18500, polish: 225, bp: 39, amber: 5, hasStages: true, maxStage: 3, score: 2420 },
+        { name: "神話T2★3-1", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true, score: 2370 },
+        { name: "神話T2★3-2", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true, score: 2370 },
+        { name: "神話T2★3-3", alloy: 19250, polish: 237, bp: 40, amber: 6, isStage: true, score: 2370 },
 
-    // 神話T3 -> 次は 神話T3★1
-    { name: "神話T3", alloy: 19250, polish: 239, bp: 40, amber: 7, hasStages: true, maxStage: 3 },
-    { name: "神話T3-1", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true },
-    { name: "神話T3-2", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true },
-    { name: "神話T3-3", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true },
+        // 神話T3 -> 次は 神話T3★1
+        { name: "神話T3", alloy: 19250, polish: 239, bp: 40, amber: 7, hasStages: true, maxStage: 3, score: 2450 },
+        { name: "神話T3-1", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true, score: 2360 },
+        { name: "神話T3-2", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true, score: 2360 },
+        { name: "神話T3-3", alloy: 20000, polish: 247, bp: 41, amber: 6, isStage: true, score: 2360 },
 
-    // 神話T3★1 -> 次は 神話T3★2
-    { name: "神話T3★1", alloy: 20000, polish: 249, bp: 42, amber: 7, hasStages: true, maxStage: 3 },
-    { name: "神話T3★1-1", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true },
-    { name: "神話T3★1-2", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true },
-    { name: "神話T3★1-3", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true },
+        // 神話T3★1 -> 次は 神話T3★2
+        { name: "神話T3★1", alloy: 20000, polish: 249, bp: 42, amber: 7, hasStages: true, maxStage: 3, score: 2480 },
+        { name: "神話T3★1-1", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true, score: 2360 },
+        { name: "神話T3★1-2", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true, score: 2360 },
+        { name: "神話T3★1-3", alloy: 20750, polish: 257, bp: 42, amber: 6, isStage: true, score: 2360 },
 
-    // 神話T3★2 -> 次は 神話T3★3
-    { name: "神話T3★2", alloy: 20750, polish: 259, bp: 44, amber: 7, hasStages: true, maxStage: 3 },
-    { name: "神話T3★2-1", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
-    { name: "神話T3★2-2", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
-    { name: "神話T3★2-3", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true },
+        // 神話T3★2 -> 次は 神話T3★3
+        { name: "神話T3★2", alloy: 20750, polish: 259, bp: 44, amber: 7, hasStages: true, maxStage: 3, score: 2480 },
+        { name: "神話T3★2-1", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true, score: 2370 },
+        { name: "神話T3★2-2", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true, score: 2370 },
+        { name: "神話T3★2-3", alloy: 21500, polish: 267, bp: 45, amber: 6, isStage: true, score: 2370 },
 
-    // =========================================================
-    // ここから 5段階 (0-4) エリア
-    // 神話T3★3 以降
-    // =========================================================
+        // =========================================================
+        // ここから 5段階 (0-4) エリア
+        // 神話T3★3 以降
+        // =========================================================
 
-    // 神話T3★3 (Base)
-    { name: "神話T3★3", alloy: 21500, polish: 269, bp: 45, amber: 7, hasStages: true, maxStage: 4 },
-    { name: "T3★3-1", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
-    { name: "T3★3-2", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
-    { name: "T3★3-3", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
-    { name: "T3★3-4", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true },
+        // 神話T3★3 (Base) -> 次は 神話T4
+        { name: "神話T3★3", alloy: 21500, polish: 269, bp: 45, amber: 7, hasStages: true, maxStage: 4, score: 2450 },
+        { name: "T3★3-1", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true, score: 3190 },
+        { name: "T3★3-2", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true, score: 3090 },
+        { name: "T3★3-3", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true, score: 3090 },
+        { name: "T3★3-4", alloy: 24000, polish: 300, bp: 50, amber: 8, isStage: true, score: 3100 },
 
-    // 神話T4
-    { name: "神話T4", alloy: 24000, polish: 300, bp: 50, amber: 8, hasStages: true, maxStage: 4 },
-    { name: "T4-1", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
-    { name: "T4-2", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
-    { name: "T4-3", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
-    { name: "T4-4", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true },
+        // 神話T4 -> 次は 神話T4★1
+        { name: "神話T4", alloy: 24000, polish: 300, bp: 50, amber: 8, hasStages: true, maxStage: 4, score: 3090 },
+        { name: "T4-1", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true, score: 3020 },
+        { name: "T4-2", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true, score: 3100 },
+        { name: "T4-3", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true, score: 3090 },
+        { name: "T4-4", alloy: 28000, polish: 330, bp: 55, amber: 8, isStage: true, score: 3100 },
 
-    // 神話T4★1
-    { name: "神話T4★1", alloy: 28000, polish: 330, bp: 55, amber: 8, hasStages: true, maxStage: 4 },
-    { name: "T4★1-1", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
-    { name: "T4★1-2", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
-    { name: "T4★1-3", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
-    { name: "T4★1-4", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true },
+        // 神話T4★1 -> 次は 神話T4★2
+        { name: "神話T4★1", alloy: 28000, polish: 330, bp: 55, amber: 8, hasStages: true, maxStage: 4, score: 3090 },
+        { name: "T4★1-1", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true, score: 3020 },
+        { name: "T4★1-2", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true, score: 3090 },
+        { name: "T4★1-3", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true, score: 3100 },
+        { name: "T4★1-4", alloy: 32000, polish: 360, bp: 60, amber: 8, isStage: true, score: 3090 },
 
-    // 神話T4★2
-    { name: "神話T4★2", alloy: 32000, polish: 360, bp: 60, amber: 8, hasStages: true, maxStage: 4 },
-    { name: "T4★2-1", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
-    { name: "T4★2-2", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
-    { name: "T4★2-3", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
-    { name: "T4★2-4", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true },
+        // 神話T4★2 -> 次は 神話T4★3
+        { name: "神話T4★2", alloy: 32000, polish: 360, bp: 60, amber: 8, hasStages: true, maxStage: 4, score: 3100 },
+        { name: "T4★2-1", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true, score: 3010 },
+        { name: "T4★2-2", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true, score: 3100 },
+        { name: "T4★2-3", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true, score: 3090 },
+        { name: "T4★2-4", alloy: 36000, polish: 390, bp: 65, amber: 8, isStage: true, score: 3100 },
 
-    // 神話T4★3 (最終到達点)
-    { name: "神話T4★3", alloy: 36000, polish: 390, bp: 65, amber: 8, hasStages: false }
-];
+        // 神話T4★3 (最終到達点)
+        { name: "神話T4★3", alloy: 36000, polish: 390, bp: 65, amber: 8, hasStages: false, score: 3090 }
+    ];
 
   // ==========================================
   // ロジック & 初期化 (Logic & Init)
   // ==========================================
 
-  document.addEventListener('DOMContentLoaded', () => {
-      const currSel = document.getElementById('currentRank');
+      document.addEventListener('DOMContentLoaded', () => {
+          const currSel = document.getElementById('currentRank');
 
-      // 現在ランクの選択肢生成
-      // データ全体の最後まで選択可能にする
-      EQUIP_DATA.forEach((item, index) => {
-          if (item.isStage) return; // 内部データはスキップ
-          let op = document.createElement('option');
-          op.value = index;
-          op.text = item.name;
-          currSel.appendChild(op);
-      });
+          // 現在ランクの選択肢生成
+          // ★修正: データ末尾の「神話T4★3」(最大レベル) は強化元になれないため選択肢から除外する
+          const lastIndex = EQUIP_DATA.length - 1;
 
-      // --- イベントリスナーの設定 ---
+          EQUIP_DATA.forEach((item, index) => {
+              if (item.isStage) return; // 段階データ(isStage=true)はスキップ
+              if (index === lastIndex) return; // ★追加: 最大レベル(神話T4★3)をスキップ
 
-      // 1. 現在ランク変更時
-      document.getElementById('currentRank').addEventListener('change', () => {
-          updateCurrentStageList(); 
+              let op = document.createElement('option');
+              op.value = index;
+              op.text = item.name;
+              currSel.appendChild(op);
+          });
+
+          // --- イベントリスナーの設定 ---
+
+          // 1. 現在ランク変更時
+          document.getElementById('currentRank').addEventListener('change', () => {
+              updateCurrentStageList(); 
+              updateTargetRankList();
+          });
+
+          // 2. 現在ステージ変更時
+          document.getElementById('currentStage').addEventListener('change', () => {
+              updateTargetRankList();
+          });
+
+          // 3. 目標ランク変更時
+          document.getElementById('targetRank').addEventListener('change', () => {
+              updateTargetStageList();
+          });
+
+          // 初回実行
+          updateCurrentStageList();
           updateTargetRankList();
       });
-
-      // 2. 現在ステージ変更時 (最大段階かどうかで目標ランクの開始位置が変わるため)
-      document.getElementById('currentStage').addEventListener('change', () => {
-          updateTargetRankList();
-      });
-
-      // 3. 目標ランク変更時
-      document.getElementById('targetRank').addEventListener('change', () => {
-          updateTargetStageList();
-      });
-
-      // 初回実行
-      updateCurrentStageList();
-      updateTargetRankList();
-  });
 
   // --- 動的生成ロジック ---
 
@@ -637,101 +692,119 @@ const EQUIP_DATA = [
       }
   }
 
-  // --- 計算実行 ---
-  function calculateEquipCost() {
-      // 1. 開始インデックス
-      const curRankIdx = parseInt(document.getElementById('currentRank').value);
-      let startIdx = curRankIdx;
+      // --- 計算実行 ---
+      function calculateEquipCost() {
+          // 1. 開始インデックス
+          const curRankIdx = parseInt(document.getElementById('currentRank').value);
+          let startIdx = curRankIdx;
 
-      if (EQUIP_DATA[curRankIdx].hasStages) {
-          const stageVal = parseInt(document.getElementById('currentStage').value);
-          startIdx += stageVal;
-      }
-
-      // 2. 終了インデックス
-      const tarRankIdx = parseInt(document.getElementById('targetRank').value);
-      let endIdx = tarRankIdx;
-
-      if (EQUIP_DATA[tarRankIdx].hasStages) {
-          const stageVal = parseInt(document.getElementById('targetStage').value);
-          endIdx += stageVal;
-      }
-
-      // エラーチェック
-      if (startIdx >= endIdx) {
-          alert("目標ランクは現在ランクより高く設定してください");
-          return;
-      }
-
-      // 3. コスト積算
-      let baseCost = { alloy: 0, polish: 0, bp: 0, amber: 0 };
-
-      for (let i = startIdx + 1; i <= endIdx; i++) {
-          if (EQUIP_DATA[i]) {
-              baseCost.alloy += EQUIP_DATA[i].alloy;
-              baseCost.polish += EQUIP_DATA[i].polish;
-              baseCost.bp += EQUIP_DATA[i].bp;
-              baseCost.amber += EQUIP_DATA[i].amber;
+          if (EQUIP_DATA[curRankIdx].hasStages) {
+              const stageVal = parseInt(document.getElementById('currentStage').value);
+              startIdx += stageVal;
           }
-      }
 
-      // 4. 結果表示
-      const resultArea = document.getElementById('resultArea');
-      resultArea.innerHTML = '';
+          // 2. 終了インデックス
+          const tarRankIdx = parseInt(document.getElementById('targetRank').value);
+          let endIdx = tarRankIdx;
 
-      const multipliers = [1, 2, 4, 6]; 
+          if (EQUIP_DATA[tarRankIdx].hasStages) {
+              const stageVal = parseInt(document.getElementById('targetStage').value);
+              endIdx += stageVal;
+          }
 
-      multipliers.forEach(m => {
-          const totalAlloy = Math.ceil(baseCost.alloy * m).toLocaleString();
-          const totalPolish = Math.ceil(baseCost.polish * m).toLocaleString();
-          const totalBp = Math.ceil(baseCost.bp * m).toLocaleString();
-          const totalAmber = Math.ceil(baseCost.amber * m).toLocaleString();
+          // エラーチェック
+          if (startIdx >= endIdx) {
+              alert("目標ランクは現在ランクより高く設定してください");
+              return;
+          }
 
-          const showAmber = (baseCost.amber * m) > 0;
+          // ヴァレリア倍率の取得
+          const valeriaMult = parseFloat(document.getElementById("valeriaBonus").value) || 1.0;
 
-          let html = `
-              <div class="result-group">
-                  <div class="group-header">${m}部位分</div>
+          // 3. コスト積算
+          let baseCost = { alloy: 0, polish: 0, bp: 0, amber: 0, score: 0 };
 
-                  <div class="result-row">
-                      <span class="result-label">
-                          <i class="fas fa-layer-group icon-alloy"></i> 強靭な合金
-                      </span>
-                      <span class="result-value">${totalAlloy}</span>
-                  </div>
+          for (let i = startIdx + 1; i <= endIdx; i++) {
+              if (EQUIP_DATA[i]) {
+                  baseCost.alloy += EQUIP_DATA[i].alloy;
+                  baseCost.polish += EQUIP_DATA[i].polish;
+                  baseCost.bp += EQUIP_DATA[i].bp;
+                  baseCost.amber += EQUIP_DATA[i].amber;
+                  baseCost.score += EQUIP_DATA[i].score || 0;
+              }
+          }
 
-                  <div class="result-row">
-                      <span class="result-label">
-                          <i class="fas fa-flask icon-polish"></i> 研磨剤
-                      </span>
-                      <span class="result-value">${totalPolish}</span>
-                  </div>
+          // 4. 結果表示
+          const resultArea = document.getElementById('resultArea');
+          resultArea.innerHTML = '';
 
-                  <div class="result-row">
-                      <span class="result-label">
-                          <i class="fas fa-scroll icon-bp"></i> 設計図面
-                      </span>
-                      <span class="result-value">${totalBp}</span>
-                  </div>
-          `;
+          const multipliers = [1, 2, 4, 6]; 
 
-          if (showAmber) {
+          multipliers.forEach(m => {
+              const totalAlloy = Math.ceil(baseCost.alloy * m).toLocaleString();
+              const totalPolish = Math.ceil(baseCost.polish * m).toLocaleString();
+              const totalBp = Math.ceil(baseCost.bp * m).toLocaleString();
+              const totalAmber = Math.ceil(baseCost.amber * m).toLocaleString();
+
+              // --- SVSポイント計算 ---
+              // 評価スコア合計 × 36 × 個数 × ヴァレリア倍率 (四捨五入)
+              const rawSvs = baseCost.score * 36 * m; 
+              const totalSvs = Math.round(rawSvs * valeriaMult).toLocaleString();
+
+              const showAmber = (baseCost.amber * m) > 0;
+
+              let html = `
+                  <div class="result-group">
+                      <div class="group-header">${m}部位分</div>
+
+                      <div class="result-row">
+                          <span class="result-label">
+                              <i class="fas fa-layer-group icon-alloy"></i> 強靭な合金
+                          </span>
+                          <span class="result-value">${totalAlloy}</span>
+                      </div>
+
+                      <div class="result-row">
+                          <span class="result-label">
+                              <i class="fas fa-flask icon-polish"></i> 研磨剤
+                          </span>
+                          <span class="result-value">${totalPolish}</span>
+                      </div>
+
+                      <div class="result-row">
+                          <span class="result-label">
+                              <i class="fas fa-scroll icon-bp"></i> 設計図面
+                          </span>
+                          <span class="result-value">${totalBp}</span>
+                      </div>
+              `;
+
+              if (showAmber) {
+                  html += `
+                      <div class="result-row">
+                          <span class="result-label">
+                              <i class="fas fa-gem icon-amber"></i> 月光琥珀
+                          </span>
+                          <span class="result-value">${totalAmber}</span>
+                      </div>
+                  `;
+              }
+
               html += `
-                  <div class="result-row">
-                      <span class="result-label">
-                          <i class="fas fa-gem icon-amber"></i> 月光琥珀
-                      </span>
-                      <span class="result-value">${totalAmber}</span>
+                      <div class="result-row" style="margin-top:15px; border-top:none;">
+                          <span class="result-label" style="color:#fbbf24;">
+                              <i class="fas fa-star icon-star"></i> SVSポイント
+                          </span>
+                          <span class="result-value">${totalSvs}</span>
+                      </div>
                   </div>
               `;
-          }
 
-          html += `</div>`;
-          resultArea.insertAdjacentHTML('beforeend', html);
-      });
+              resultArea.insertAdjacentHTML('beforeend', html);
+          });
 
-      resultArea.style.display = 'block';
-  }
+          resultArea.style.display = 'block';
+      }
 
 </script>
 
