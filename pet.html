@@ -179,9 +179,11 @@
   .result-label { 
     font-size: 0.95rem; color: var(--text-sub); 
     display: flex; align-items: center; gap: 10px;
+    font-weight: bold;
   }
+
   .result-value {
-    font-size: 1.5rem; font-weight: 800; color: var(--accent-ice);
+    font-size: 1.3rem; font-weight: 800; color: var(--accent-ice);
     font-family: "Helvetica Neue", sans-serif;
     text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
   }
@@ -224,6 +226,20 @@
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
   }
+
+  /* トップへ戻るボタン */
+  #page-top-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    width: 50px; height: 50px; background: rgba(34, 211, 238, 0.2);
+    border: 1px solid var(--accent-ice); border-radius: 50%;
+    color: var(--accent-ice); font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; pointer-events: none; transition: 0.3s;
+    backdrop-filter: blur(5px);
+  }
+  #page-top-btn.show { opacity: 1; pointer-events: auto; }
+  #page-top-btn:hover { background: rgba(34, 211, 238, 0.4); transform: translateY(-3px); }
+
 </style>
 </head>
 <body>
@@ -354,7 +370,18 @@
   &copy; 2026 WOS Tools Created by MAYUKA
 </footer>
 
+  <div id="page-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">
+    <i class="fas fa-chevron-up"></i>
+  </div>
+
 <script>
+  // スクロール検知でボタン表示
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('page-top-btn');
+    if (window.scrollY > 300) btn.classList.add('show');
+    else btn.classList.remove('show');
+  });
+
 // ==========================================
 // データ定義 (Data Definition)
 // ==========================================

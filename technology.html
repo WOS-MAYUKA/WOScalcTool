@@ -216,9 +216,14 @@
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
   .result-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .result-label { font-size: 0.9rem; color: var(--text-sub); display: flex; align-items: center; gap: 8px; }
+  .result-label { 
+    font-size: 0.95rem; color: var(--text-sub); 
+    display: flex; align-items: center; gap: 10px;
+    font-weight: bold;
+  }
+
   .result-value {
-    font-size: 1.2rem; font-weight: 800; color: var(--accent-ice);
+    font-size: 1.3rem; font-weight: 800; color: var(--accent-ice);
     font-family: "Helvetica Neue", sans-serif;
     text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
   }
@@ -314,6 +319,20 @@
   }
 
   footer { margin-top: auto; padding: 40px; width: 100%; text-align: center; color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em; }
+
+  /* トップへ戻るボタン */
+  #page-top-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    width: 50px; height: 50px; background: rgba(34, 211, 238, 0.2);
+    border: 1px solid var(--accent-ice); border-radius: 50%;
+    color: var(--accent-ice); font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; pointer-events: none; transition: 0.3s;
+    backdrop-filter: blur(5px);
+  }
+  #page-top-btn.show { opacity: 1; pointer-events: auto; }
+  #page-top-btn:hover { background: rgba(34, 211, 238, 0.4); transform: translateY(-3px); }
+
 </style>
 </head>
 <body>
@@ -410,6 +429,13 @@
     <button class="calc-btn" onclick="calculate()">必要コストを計算</button>
 
     <div class="result-container" id="result-area">
+
+      <div class="result-row" id="row-fc" style="display:none;">
+        <span class="result-label" style="color: #f43f5e; text-shadow: 0 0 5px rgba(244, 63, 94, 0.4);">
+          <i class="fas fa-gem icon-fc"></i> 火晶微粒子
+        </span>
+        <span class="result-value" id="res-fc">0</span>
+      </div>
       <div class="result-row">
         <span class="result-label"><i class="fas fa-drumstick-bite icon-meat"></i> 生肉</span>
         <span class="result-value" id="res-meat">0</span>
@@ -430,23 +456,21 @@
         <span class="result-label"><i class="fas fa-layer-group icon-steel"></i> 鋼材</span>
         <span class="result-value" id="res-steel">0</span>
       </div>
-      <div class="result-row" id="row-fc" style="display:none;">
-        <span class="result-label"><i class="fas fa-gem icon-fc"></i> 火晶微粒子</span>
-        <span class="result-value" id="res-fc">0</span>
-      </div>
+
       <div class="result-row">
         <span class="result-label"><i class="fas fa-clock icon-time"></i> 研究時間</span>
         <span class="result-value" id="res-time">0h 0m</span>
       </div>
 
-    <div class="result-row" style="margin-top: 15px;">
-      <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
-        <i class="fas fa-star"></i> SVSポイント
-      </span>
-      <span class="result-value" id="res-svs-points">0</span>
+      <div class="result-row" style="margin-top: 15px;">
+        <span class="result-label" style="color:#fbbf24; font-size: 1rem;">
+          <i class="fas fa-star"></i> SVSポイント
+        </span>
+        <span class="result-value" id="res-svs-points">0</span>
+      </div>
+
     </div>
 
-  </div>
 </div>
 
 <div class="youtube-wrapper">
@@ -465,9 +489,18 @@
 <footer>
   &copy; 2026 WOS Tools Created by MAYUKA
 </footer>
-
-<script>
+  <div id="page-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">
+    <i class="fas fa-chevron-up"></i>
+  </div>
   
+<script>
+  // スクロール検知でボタン表示
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('page-top-btn');
+    if (window.scrollY > 300) btn.classList.add('show');
+    else btn.classList.remove('show');
+  });
+
 /**
  * ====================================================================
  * データ定義エリア
