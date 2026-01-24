@@ -225,7 +225,35 @@
 
   .hidden { display: none; }
 
-
+  /* --- ヴァレリア入力欄用スタイル --- */
+  .setting-container {
+    margin-top: 20px;
+    padding: 10px 15px;
+    background: rgba(34, 211, 238, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+  }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+  .setting-label {
+    font-weight: bold;
+    color: var(--accent-ice);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .setting-input {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  
   footer {
     margin-top: auto; padding: 40px; width: 100%; text-align: center;
     color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
@@ -260,19 +288,40 @@
       <button class="tab-btn" onclick="switchTab('skill')"><i class="fas fa-book"></i> スキル</button>
     </div>
 
-      <div id="tab-favor" class="tab-content">
-        <div style="display: flex; gap: 20px;">
-          <div style="flex:1;">
-            <label>現在レベル</label>
-            <select id="currentLv"></select>
-          </div>
-          <div style="flex:1;">
-            <label>目標レベル</label>
-            <select id="targetLv"></select>
+    <div id="tab-favor" class="tab-content">
+      <div style="display: flex; gap: 20px;">
+        <div style="flex:1;">
+          <label>現在レベル</label>
+          <select id="currentLv"></select>
+        </div>
+        <div style="flex:1;">
+          <label>目標レベル</label>
+          <select id="targetLv"></select>
+        </div>
+      </div>
+
+      <div class="setting-container">
+        <div class="setting-row">
+          <span class="setting-label">ヴァレリア(出撃準備)</span>
+          <div class="setting-input">
+            <select id="valeriaBonusFavor" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+              <option value="1.0">未解放 (0%)</option>
+              <option value="1.02">Lv.1 (2%)</option>
+              <option value="1.04">Lv.2 (4%)</option>
+              <option value="1.06">Lv.3 (6%)</option>
+              <option value="1.08">Lv.4 (8%)</option>
+              <option value="1.10">Lv.5 (10%)</option>
+              <option value="1.12">Lv.6 (12%)</option>
+              <option value="1.14">Lv.7 (14%)</option>
+              <option value="1.16">Lv.8 (16%)</option>
+              <option value="1.18">Lv.9 (18%)</option>
+              <option value="1.20">Lv.10 (20%)</option>
+            </select>
           </div>
         </div>
+      </div>
 
-        <button class="calc-btn" onclick="calculateFavor()">必要コストを計算</button>
+      <button class="calc-btn" onclick="calculateFavor()">必要コストを計算</button>
 
       <div class="result-container" id="resFavorArea" style="display:none;">
         <div class="result-row">
@@ -287,7 +336,15 @@
           </span>
           <span class="result-value" id="resMarkVal">0</span>
         </div>
+
+        <div class="result-row" style="margin-top: 15px;">
+          <span class="result-label" style="color:#fbbf24;">
+            <i class="fas fa-star icon-time"></i> SVSポイント
+          </span>
+          <span class="result-value" id="resSvsFavor">0</span>
+        </div>
       </div>
+    </div>
 
       </div> <div id="tab-skill" class="tab-content hidden">
 
@@ -361,9 +418,29 @@
           </div>
         </div>
 
+      <div class="setting-container">
+        <div class="setting-row">
+          <span class="setting-label">ヴァレリア(出撃準備)</span>
+          <div class="setting-input">
+            <select id="valeriaBonusSkill" style="width: 100%; max-width: 150px; padding: 6px; font-size: 0.8rem;">
+              <option value="1.0">未解放 (0%)</option>
+              <option value="1.02">Lv.1 (2%)</option>
+              <option value="1.04">Lv.2 (4%)</option>
+              <option value="1.06">Lv.3 (6%)</option>
+              <option value="1.08">Lv.4 (8%)</option>
+              <option value="1.10">Lv.5 (10%)</option>
+              <option value="1.12">Lv.6 (12%)</option>
+              <option value="1.14">Lv.7 (14%)</option>
+              <option value="1.16">Lv.8 (16%)</option>
+              <option value="1.18">Lv.9 (18%)</option>
+              <option value="1.20">Lv.10 (20%)</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <button class="calc-btn" onclick="calculateSkill()">必要コストを計算</button>
 
-    <div class="result-container" id="resSkillArea" style="display:none;">
+      <div class="result-container" id="resSkillArea" style="display:none;">
       <div class="result-row">
         <span class="result-label">
           <i class="fas fa-book icon-book"></i> 学識の書
@@ -382,6 +459,15 @@
         </span>
         <span class="result-value" id="resTime">0</span>
       </div>
+
+      <div class="result-row" style="margin-top: 15px;">
+        <span class="result-label" style="color:#fbbf24;">
+          <i class="fas fa-star icon-time"></i> SVSポイント
+        </span>
+        <span class="result-value" id="resSvsSkill">0</span>
+      </div>
+      </div>
+
     </div>
         </div> </div> <div class="youtube-wrapper">
       <div class="youtube-container">
@@ -1023,26 +1109,34 @@ function getMarkCost(charType, levelCheck) {
   }
 }
 
-function calculateFavor() {
-  const charType = document.getElementById("charSelect").value;
-  let start = parseInt(document.getElementById("currentLv").value);
-  let end = parseInt(document.getElementById("targetLv").value);
+  function calculateFavor() {
+    const charType = document.getElementById("charSelect").value;
+    let start = parseInt(document.getElementById("currentLv").value);
+    let end = parseInt(document.getElementById("targetLv").value);
 
-  if (start >= end) { alert("目標レベルは現在レベルより高く設定してください"); return; }
+    if (start >= end) { alert("目標レベルは現在レベルより高く設定してください"); return; }
 
-  let totalFavor = 0;
-  let totalMarks = 0;
-  const selectedTable = favorDataMap[charType];
+    let totalFavor = 0;
+    let totalMarks = 0;
+    const selectedTable = favorDataMap[charType];
 
-  for (let lv = start; lv < end; lv++) {
-    if (selectedTable[lv] !== undefined) totalFavor += selectedTable[lv];
-    let nextLv = lv + 1;
-    if (nextLv % 10 === 0) totalMarks += getMarkCost(charType, nextLv);
+    for (let lv = start; lv < end; lv++) {
+      if (selectedTable[lv] !== undefined) totalFavor += selectedTable[lv];
+      let nextLv = lv + 1;
+      if (nextLv % 10 === 0) totalMarks += getMarkCost(charType, nextLv);
+    }
+
+    // --- SVSポイント計算 ---
+    // 印1個 = 6000ポイント
+    const valeriaMult = parseFloat(document.getElementById("valeriaBonusFavor").value) || 1.0;
+    const svsPoints = Math.round(totalMarks * 6000 * valeriaMult);
+
+    document.getElementById("resFavorVal").innerText = totalFavor.toLocaleString();
+    document.getElementById("resMarkVal").innerText = totalMarks.toLocaleString();
+    document.getElementById("resSvsFavor").innerText = svsPoints.toLocaleString(); // 結果表示
+
+    document.getElementById("resFavorArea").style.display = "block";
   }
-  document.getElementById("resFavorVal").innerText = totalFavor.toLocaleString();
-  document.getElementById("resMarkVal").innerText = totalMarks.toLocaleString();
-  document.getElementById("resFavorArea").style.display = "block";
-}
 
   // スキルコスト計算
   function calculateSkill() {
@@ -1099,12 +1193,17 @@ function calculateFavor() {
       timeStr = `${dayHours}h ${mins}m`;
     }
 
+    // --- SVSポイント計算 ---
+    // 書1個=60, 時間1分=30
+    const valeriaMult = parseFloat(document.getElementById("valeriaBonusSkill").value) || 1.0;
+    const basePoints = (totalBook * 60) + (totalTime * 30);
+    const svsPoints = Math.round(basePoints * valeriaMult);
+
     // 結果の表示
     document.getElementById("resBook").innerText = totalBook.toLocaleString();
     document.getElementById("resXP").innerText = totalXP.toLocaleString();
-
-    // メイン表示エリアに整形済み時間をセット
     document.getElementById("resTime").innerText = timeStr;
+    document.getElementById("resSvsSkill").innerText = svsPoints.toLocaleString(); // 結果表示
 
     document.getElementById("resSkillArea").style.display = "block";
   }
