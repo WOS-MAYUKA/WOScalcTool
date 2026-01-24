@@ -245,17 +245,47 @@
   .btn-copy { background-color: #475569; border: 1px solid var(--glass-border); }
   .share-btn:hover { opacity: 0.9; transform: translateY(-3px); }
 
+  /* --- フッターエリア --- */
   footer {
-    margin-top: auto; padding: 40px; border-top: 1px solid var(--glass-border);
-    width: 100%; text-align: center; color: var(--text-sub); font-size: 0.8rem; letter-spacing: 0.1em;
+    margin-top: auto; padding: 40px 20px; 
+    border-top: 1px solid var(--glass-border);
+    width: 100%; text-align: center; 
+    color: var(--text-sub); 
+    font-size: 0.8rem; letter-spacing: 0.1em;
+    box-sizing: border-box; /* 追記: パディングによる横揺れ防止 */
   }
-  /* 免責事項 */
+
+  /* 免責事項・規約エリア (デザイン修正版) */
   .footer-disclaimer {
-    margin: 30px auto 20px auto; max-width: 800px;
-    font-size: 0.65rem; color: var(--text-sub); opacity: 0.6;
-    line-height: 1.8; text-align: center;
+    margin: 0 auto 30px auto; 
+    max-width: 800px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3); /* 背景を少し濃く */
+    border: 1px solid var(--glass-border); /* 枠線を追加 */
+    border-radius: 8px;
+
+    font-size: 0.8rem; /* 文字サイズUP */
+    color: var(--text-sub);
+    opacity: 1; /* 透明度を削除してくっきり */
+    line-height: 1.8; 
+    text-align: center;
   }
-  .footer-disclaimer p { margin: 0 0 10px 0; }
+  .footer-disclaimer p { margin: 0 0 15px 0; }
+  .footer-disclaimer p:last-child { margin-bottom: 0; }
+
+  /* 規約リンクのスタイル */
+  .policy-link {
+    color: var(--accent-ice) !important; /* ネオンブルーを強制 */
+    text-decoration: none;
+    font-weight: bold;
+    border-bottom: 1px solid transparent;
+    transition: 0.3s;
+    display: inline-block;
+  }
+  .policy-link:hover {
+    border-bottom-color: var(--accent-ice);
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+  }
 
   /* トップへ戻るボタン */
   #page-top-btn {
