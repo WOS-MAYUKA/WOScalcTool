@@ -544,12 +544,11 @@
           const currSel = document.getElementById('currentRank');
 
           // 現在ランクの選択肢生成
-          // ★修正: データ末尾の「神話T4★3」(最大レベル) は強化元になれないため選択肢から除外する
           const lastIndex = EQUIP_DATA.length - 1;
 
           EQUIP_DATA.forEach((item, index) => {
               if (item.isStage) return; // 段階データ(isStage=true)はスキップ
-              if (index === lastIndex) return; // ★追加: 最大レベル(神話T4★3)をスキップ
+              if (index === lastIndex) return; // 最大レベル(神話T4★3)をスキップ
 
               let op = document.createElement('option');
               op.value = index;
@@ -582,7 +581,7 @@
 
   // --- 動的生成ロジック ---
 
-  // 【A】現在の段階（0 〜 Max）を生成
+  // 現在の段階（0 〜 Max）を生成
   function updateCurrentStageList() {
       const rankIdx = parseInt(document.getElementById('currentRank').value);
       const box = document.getElementById('currentStageBox');
@@ -618,7 +617,7 @@
       }
   }
 
-  // 【B】目標ランク（条件に応じて開始位置を調整）を生成
+  // 目標ランク（条件に応じて開始位置を調整）を生成
   function updateTargetRankList() {
       const curRankIdx = parseInt(document.getElementById('currentRank').value);
       const curStageVal = parseInt(document.getElementById('currentStage').value) || 0;
@@ -630,7 +629,7 @@
 
       const minTargetIdx = 1; // グッド(idx 1)以上
 
-      // ★目標リストの開始位置を決定
+      // 目標リストの開始位置を決定
       let startRankIdx = curRankIdx;
 
       if (EQUIP_DATA[curRankIdx]) {
@@ -672,7 +671,7 @@
       updateTargetStageList();
   }
 
-  // 【C】目標の段階（条件付き動的生成）
+  // 目標の段階（条件付き動的生成）
   function updateTargetStageList() {
       const curRankIdx = parseInt(document.getElementById('currentRank').value);
       const tarRankIdx = parseInt(document.getElementById('targetRank').value);

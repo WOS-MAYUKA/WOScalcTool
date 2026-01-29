@@ -249,7 +249,7 @@
         border: 1px solid var(--glass-border);
         border-radius: 8px;
         display: flex;
-        flex-direction: column; /* 縦並びに変更 */
+        flex-direction: column;
         gap: 15px;
       }
 
@@ -287,7 +287,7 @@
       .speed-note {
         font-size: 0.8rem;
         color: var(--text-sub);
-        margin-top: -10px; /* 少し詰める */
+        margin-top: -10px;
         padding-left: 5px;
       }
 
@@ -301,7 +301,7 @@
         cursor: pointer;
         font-weight: bold;
         transition: 0.3s;
-        width: 100%; /* スマホで見やすく */
+        width: 100%;
         text-align: center;
       }
       .toggle-btn.active {
@@ -1464,7 +1464,7 @@
         speedVal: document.getElementById('milSpeedVal'),
         lordCmd: document.getElementById('milLordCmd'),
         agnes: document.getElementById('milAgnes'),
-        valeria: document.getElementById('milValeria'), // 軍備用ID
+        valeria: document.getElementById('milValeria'),
 
         resMeat: document.getElementById('resMeat'),
         resWood: document.getElementById('resWood'),
@@ -1473,7 +1473,7 @@
         resTime: document.getElementById('resTime'),
         resReq: document.getElementById('resReq'),
         reqBox: document.getElementById('reqBox'),
-        resPoints: document.getElementById('resMilPoints'), // 軍備用ID
+        resPoints: document.getElementById('resMilPoints'),
 
         resultContainer: document.getElementById('resultContainer'),
         tabMilitary: document.getElementById('tab-military'),
@@ -1487,7 +1487,7 @@
         speedVal: document.getElementById('fcSpeedVal'),
         lordCmd: document.getElementById('fcLordCmd'),
         agnes: document.getElementById('fcAgnes'),
-        valeria: document.getElementById('fcValeria'), // 火晶用ID
+        valeria: document.getElementById('fcValeria'),
 
         resCrystal: document.getElementById('resFcCrystal'),
         resRefined: document.getElementById('resFcRefined'),
@@ -1499,7 +1499,7 @@
         resTime: document.getElementById('resFcTime'),
         resReq: document.getElementById('resFcReq'),
         reqBox: document.getElementById('reqFcBox'),
-        resPoints: document.getElementById('resFcPoints'), // 火晶用ID
+        resPoints: document.getElementById('resFcPoints'),
 
         resultContainer: document.getElementById('fcResultContainer')
     };
@@ -1667,7 +1667,6 @@
         }
 
         // 2. 領主司令 (+20%)
-        // dom.lordCmd が定義されていないとここでエラーになります
         if (dom.lordCmd.classList.contains('active')) {
             speedPercent += 20;
         }
@@ -1876,11 +1875,11 @@
              fcDom.currentLv.value = currentVal;
         }
 
-        // ★追加: 目標レベル更新
+        // 目標レベル更新
         updateFcTargetOptions();
     }
 
-    // ★新規追加: 火晶目標レベル更新関数
+    // 火晶目標レベル更新関数
     function updateFcTargetOptions() {
         const name = fcDom.building.value;
         const data = fcBuildings[name];

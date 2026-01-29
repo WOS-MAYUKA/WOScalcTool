@@ -603,7 +603,7 @@ function updateMaxLevel() {
       }
     }
 
-    // 2. 突破素材計算 (条件修正: Start < Lv <= End)
+    // 2. 突破素材計算 (Start < Lv <= End)
     const matTable = materialData[rarity];
     matTable.forEach(item => {
       if (item.lv > start && item.lv <= end) {
@@ -613,7 +613,7 @@ function updateMaxLevel() {
       }
     });
 
-    // 3. SVSポイント計算 (条件修正: Start < Lv <= End)
+    // 3. SVSポイント計算 (Start < Lv <= End)
     scoreData.forEach(item => {
       if (item.lv > start && item.lv <= end) {
           totalScore += item.score;
@@ -668,7 +668,7 @@ function updateMaxLevel() {
 
 // 初期化とイベントリスナーの設定
 document.addEventListener('DOMContentLoaded', () => {
-  // 現在レベルが変更されたら、目標レベルの範囲を再計算する
+  // 現在レベルが変更されたら、目標レベルの範囲を再計算
   document.getElementById("currentLv").addEventListener('change', updateTargetOptions);
 
   // 初回実行

@@ -428,17 +428,16 @@ function updateRankColor() {
   else icon.classList.add("piece-r");
 }
 
-  // ★修正: 目標「星」の選択肢を更新する関数
+  // 目標「星」の選択肢を更新する関数
   // (現在レベルが変更された時のみ実行)
   function updateTargetStarOptions() {
     const curStar = parseInt(document.getElementById("curStar").value);
     const curTier = parseInt(document.getElementById("curTier").value);
     const tarStarSelect = document.getElementById("tarStar");
 
-    // 値を保持しようとするが、範囲外になる場合は後で調整される
     const prevTarStar = parseInt(tarStarSelect.value);
 
-    // 現在の段階が5(MAX)の場合、その星ではこれ以上強化できないため、次の星からスタート
+    // 現在の段階が5(MAX)の場合、次の星からスタート
     let startStar = (curTier >= 5) ? curStar + 1 : curStar;
     if (startStar > 5) startStar = 5; 
 
