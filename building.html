@@ -1511,7 +1511,7 @@
 
         // ボタンの見た目を更新
         if (isActive) {
-            btn.innerHTML = '<i class="fas fa-user-shield"></i> 領主司令: ON (-20%)';
+            btn.innerHTML = '<i class="fas fa-user-shield"></i> 領主司令: ON (+20%)';
         } else {
             btn.innerHTML = '<i class="fas fa-user-shield"></i> 領主司令: OFF';
         }
@@ -1706,6 +1706,7 @@
 
                 totalSeconds += finalStepSec;
 
+
                 // 条件表示
                 if (l === target) {
                     const formattedReq = formatRequirement(row.req);
@@ -1756,57 +1757,56 @@
             return;
         }
 
-            // --- 速度設定の取得 ---
-            // 1. 領主司令 (時間短縮 -20%)
-            let timeReductionPercent = 0;
-            if (dom.lordCmd.classList.contains('active')) {
-                timeReductionPercent = 20; 
+        // --- 速度設定の取得 ---
+        let timeReductionPercent = 0;
+            if (fcDom.lordCmd.classList.contains('active')) {
+            timeReductionPercent = 20; 
+        }
+        
+        let speedPercent = 0;
+        const speedInput = fcDom.speedVal.value;
+        if (speedInput !== "") {
+            speedPercent = parseFloat(speedInput);
+            if (isNaN(speedPercent) || speedPercent < 0) {
+                alert("建造速度には0以上の数値を入力してください");
+                return;
             }
+        }
 
-            // 2. 建造速度(%)
-            let speedPercent = 0;
-            const speedInput = dom.speedVal.value;
-            if (speedInput !== "") {
-                speedPercent = parseFloat(speedInput);
-                if (isNaN(speedPercent) || speedPercent < 0) {
-                    alert("建造速度には0以上の数値を入力してください");
-                    return;
-                }
-            }
+        const agnesHours = parseInt(fcDom.agnes.value) || 0;
+        const agnesSeconds = agnesHours * 3600;
 
-            // 3. アグネス減算時間 (時間 -> 秒変換)
-            const agnesHours = parseInt(dom.agnes.value) || 0;
-            const agnesSeconds = agnesHours * 3600;
+        let totalMeat = 0;
+        let totalWood = 0;
+        let totalCoal = 0;
+        let totalIron = 0;
+        let totalFc = 0;
+        let totalRfc = 0;
+        let totalSeconds = 0;
+        let requirements = [];
 
-            let totalMeat = 0;
-            let totalWood = 0;
-            let totalCoal = 0;
-            let totalIron = 0;
-            let totalSeconds = 0;
-            let requirements = [];
+        for (let i = currentIndex + 1; i <= targetIndex; i++) {
+            const row = data[i];
+            totalMeat += row.m;
+            totalWood += row.w;
+            totalCoal += row.c;
+            totalIron += row.i;
+            totalFc += row.fc;
+            totalRfc += (row.rfc || 0);
 
-            // 計算ループ
-            for (let l = current + 1; l <= target; l++) {
-                const row = data.find(d => d.lv === l);
-                if (row) {
-                    totalMeat += row.m;
-                    totalWood += row.w;
-                    totalCoal += row.c;
-                    totalIron += row.i;
+            // --- 時間計算 (段階ごとに計算) ---
+            let baseSec = parseTime(row.t);
 
-                    // --- 時間計算 (段階ごとに計算) ---
-                    let baseSec = parseTime(row.t);
+            // 1. 時間短縮の適用 (乗算処理)
+            let timeReducedSec = baseSec * (1 - (timeReductionPercent / 100));
 
-                    // 1. 時間短縮の適用 (乗算処理)
-                    let timeReducedSec = baseSec * (1 - (timeReductionPercent / 100));
+            // 2. 速度バフ反映 (除算処理 ＋ 切り捨て)
+            let speedBuffedSec = Math.floor(timeReducedSec / (1 + (speedPercent / 100)));
 
-                    // 2. 速度バフ反映 (除算処理 ＋ 切り捨て)
-                    let speedBuffedSec = Math.floor(timeReducedSec / (1 + (speedPercent / 100)));
+            // 3. アグネス減算 (0未満にはしない)
+            let finalStepSec = Math.max(0, speedBuffedSec - agnesSeconds);
 
-                    // 3. アグネス減算 (0未満にはしない)
-                    let finalStepSec = Math.max(0, speedBuffedSec - agnesSeconds);
-
-                    totalSeconds += finalStepSec;
+            totalSeconds += finalStepSec;
 
             if (i === targetIndex) {
                 const formattedReq = formatRequirement(row.req);
