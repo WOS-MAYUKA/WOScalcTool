@@ -1655,7 +1655,13 @@
         }
 
         // --- 速度設定の取得 ---
-        // 1. 建造速度(%)
+        // 1. 領主司令 (時間短縮 -20%)
+        let timeReductionPercent = 0;
+        if (dom.lordCmd.classList.contains('active')) {
+            timeReductionPercent = 20; 
+        }
+        
+        // 2. 建造速度(%)
         let speedPercent = 0;
         const speedInput = dom.speedVal.value;
         if (speedInput !== "") {
@@ -1664,11 +1670,6 @@
                 alert("建造速度には0以上の数値を入力してください");
                 return;
             }
-        }
-
-        // 2. 領主司令 (+20%)
-        if (dom.lordCmd.classList.contains('active')) {
-            speedPercent += 20;
         }
 
         // 3. アグネス減算時間 (時間 -> 秒変換)
@@ -1694,11 +1695,17 @@
                 // --- 時間計算 (段階ごとに計算) ---
                 let baseSec = parseTime(row.t);
 
-                // 1. 速度バフ反映 (切り上げ)
-                let reducedSec = Math.ceil(baseSec / (1 + (speedPercent / 100)));
+                // --- 時間計算 (段階ごとに計算) ---
+                let baseSec = parseTime(row.t);
 
-                // 2. アグネス減算 (0未満にはしない)
-                let finalStepSec = Math.max(0, reducedSec - agnesSeconds);
+                // 1. 時間短縮の適用 (乗算処理)
+                let timeReducedSec = baseSec * (1 - (timeReductionPercent / 100));
+
+                // 2. 速度バフ反映 (除算処理 ＋ 切り捨て)
+                let speedBuffedSec = Math.floor(timeReducedSec / (1 + (speedPercent / 100)));
+
+                // 3. アグネス減算 (0未満にはしない)
+                let finalStepSec = Math.max(0, speedBuffedSec - agnesSeconds);
 
                 totalSeconds += finalStepSec;
 
